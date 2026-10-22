@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Evidence Gaps</title>
+  <meta name="description" content="Missing & Incomplete Governance Metadata across discovered personal-data fields">
+  
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item active" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Evidence Gaps</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports & Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Synthetic Benchmark</div>
+          <div>84 Labelled Fields · Multi-Class</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">Evidence Gaps</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">API Connected</span>
+          </div>
+
+          <!-- Primary Actions -->
+          <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
+            <span id="scanBtnIcon">▶</span>
+            <span id="scanBtnLabel">Run Full Scan</span>
+          </button>
+
+          <button class="btn btn-secondary-gold" id="btnRunAnalyze" title="Map metadata, build unified inventory and evaluation">
+            <span>⚙</span>
+            <span>Run Pipeline</span>
+          </button>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Technical Evidence Only</span>
+        <span>TECHNICAL EVIDENCE ONLY: This prototype identifies candidate personal-data fields using configurable technical rules and records evidence about declared purpose and retention metadata. Results require human review. Detection is not a legal determination, does not establish lawful basis, and does not prove universal data-flow coverage or regulatory compliance.</span>
+      </aside>
+
+      <!-- Main Workspace Views -->
+      <main class="workspace-content">
+        
+        <!-- ================================================================
+             EVIDENCE GAPS PAGE
+             ================================================================ -->
+        <section class="tab-pane active" id="tab-gaps" style="display: block;">
+          <div class="callout callout-warning">
+            <strong>Evidence Gap Definition:</strong> An evidence gap indicates that technical discovery identified a candidate personal-data field, but the organisation's declared governance metadata is missing or incomplete. <em>Evidence gaps require human review and do not constitute legal violations.</em>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Missing & Incomplete Governance Metadata</h3>
+              <span style="font-size: 0.82rem; font-weight: 600; color: var(--accent-orange);" id="gapsCounter">Loading gaps...</span>
+            </div>
+            <div class="card-body">
+              
+              <!-- Filter Toolbar -->
+              <div class="toolbar">
+                <input type="text" class="search-input" id="gapsSearchInput" placeholder="Search missing fields, tables or evidence notes...">
+                
+                <select class="select-input" id="gapsStatusFilter">
+                  <option value="All">All Gap Types</option>
+                  <option value="Retention Missing">Retention Missing</option>
+                  <option value="Purpose Missing">Purpose Missing</option>
+                  <option value="Purpose & Retention Missing">Purpose & Retention Missing</option>
+                  <option value="Not Mapped">Not Mapped (No Governance Record)</option>
+                </select>
+
+                <select class="select-input" id="gapsClassFilter">
+                  <option value="All">All Data Classes</option>
+                  <option value="Identity">Identity</option>
+                  <option value="Contact">Contact</option>
+                  <option value="Location">Location</option>
+                  <option value="Financial">Financial</option>
+                  <option value="Sensitive/Health">Sensitive/Health</option>
+                </select>
+              </div>
+
+              <!-- Gaps Table -->
+              <div class="table-container">
+                <table id="gapsTable">
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Field Name</th>
+                      <th>Data Class</th>
+                      <th>Gap Classification</th>
+                      <th>Missing Metadata</th>
+                      <th>Evidence Finding</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gapsTableBody">
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Loading evidence gaps...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-bar" id="gapsPagination"></div>
+
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DETAIL INSPECTOR MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem; font-weight: 700;" id="modalFieldTitle">Field Evidence Details</h3>
+        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCloseBtnFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dashboard JavaScript Application -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

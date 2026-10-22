@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Ground-Truth Evaluation</title>
+  <meta name="description" content="Rigorous Precision, Recall, and Confusion Matrix Evaluation against synthetic benchmark">
+  
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Evidence Gaps</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
+
+        <a href="/evaluation" class="nav-item active" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports & Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Synthetic Benchmark</div>
+          <div>84 Labelled Fields · Multi-Class</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">Ground-Truth Evaluation</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">API Connected</span>
+          </div>
+
+          <!-- Primary Actions -->
+          <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
+            <span id="scanBtnIcon">▶</span>
+            <span id="scanBtnLabel">Run Full Scan</span>
+          </button>
+
+          <button class="btn btn-secondary-gold" id="btnRunAnalyze" title="Map metadata, build unified inventory and evaluation">
+            <span>⚙</span>
+            <span>Run Pipeline</span>
+          </button>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Technical Evidence Only</span>
+        <span>TECHNICAL EVIDENCE ONLY: This prototype identifies candidate personal-data fields using configurable technical rules and records evidence about declared purpose and retention metadata. Results require human review. Detection is not a legal determination, does not establish lawful basis, and does not prove universal data-flow coverage or regulatory compliance.</span>
+      </aside>
+
+      <!-- Main Workspace Views -->
+      <main class="workspace-content">
+        
+        <!-- ================================================================
+             GROUND-TRUTH EVALUATION PAGE
+             ================================================================ -->
+        <section class="tab-pane active" id="tab-evaluation" style="display: block;">
+          
+          <div class="callout">
+            <strong>Evaluation Methodology:</strong> Performance is calculated using a <em>one-vs-rest</em> approach against the hand-labelled synthetic benchmark dataset (<code>data/ground_truth.csv</code>). Undefined denominators are surfaced explicitly as <code>N/A</code> with status notes.
+          </div>
+
+          <!-- Binary Candidate Detection Metrics -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">1. Binary Candidate Detection Performance (PII vs Non-PII)</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="metric-highlight-box">
+                  <div class="kpi-title">Detection Precision</div>
+                  <div class="font-mono metric-highlight-val" style="color: var(--accent-gold);" id="detPrecision">--</div>
+                  <div class="kpi-sub">TP / (TP + FP)</div>
+                </div>
+                <div class="metric-highlight-box">
+                  <div class="kpi-title">Detection Recall</div>
+                  <div class="font-mono metric-highlight-val" style="color: var(--color-success);" id="detRecall">--</div>
+                  <div class="kpi-sub">TP / (TP + FN)</div>
+                </div>
+                <div class="metric-highlight-box">
+                  <div class="kpi-title">Detection F1-Score</div>
+                  <div class="font-mono metric-highlight-val" style="color: var(--orange-primary);" id="detF1">--</div>
+                  <div class="kpi-sub">Harmonic Mean</div>
+                </div>
+                <div class="metric-highlight-box">
+                  <div class="kpi-title">Confusion Breakdown</div>
+                  <div class="font-mono" style="font-size: 0.92rem; font-weight: 700; margin: 0.65rem 0;" id="detCounts">TP: -- | FP: -- | FN: -- | TN: --</div>
+                  <div class="kpi-sub">Total 84 evaluated fields</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Per-Class Metrics Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">2. Per-Class One-vs-Rest Evaluation</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Class Name</th>
+                      <th>TP</th>
+                      <th>FP</th>
+                      <th>FN</th>
+                      <th>Support (GT)</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>F1-Score</th>
+                      <th>Sample Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="perClassTableBody">
+                    <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading per-class metrics...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confusion Matrix & Discrepancies Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
+            
+            <!-- Confusion Matrix -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">3. Confusion Matrix Grid</h3>
+              </div>
+              <div class="card-body">
+                <div class="table-container">
+                  <table id="confusionMatrixTable">
+                    <thead>
+                      <tr id="cmHeaderRow"><th>Expected ↓ / Pred →</th></tr>
+                    </thead>
+                    <tbody id="cmBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Discrepancy Error Records -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">4. Classification Discrepancies (<span id="errorCountBadge">0</span>)</h3>
+              </div>
+              <div class="card-body" style="max-height: 420px; overflow-y: auto;" id="errorListContainer">
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Loading discrepancies...</div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DETAIL INSPECTOR MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem; font-weight: 700;" id="modalFieldTitle">Field Evidence Details</h3>
+        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCloseBtnFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dashboard JavaScript Application -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account · PrivSight — Personal-Data Discovery & Evidence Inventory</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <!-- Top Bar with Theme Toggle -->
+    <div class="auth-top-bar" style="justify-content: flex-end;">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+        <span id="themeToggleIcon">☀️</span>
+      </button>
+    </div>
+
+    <!-- Registration Card -->
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo-wrap" style="cursor: default;">
+          <div class="brand-symbol" style="width: 52px; height: 52px; font-size: 1.45rem;">PS</div>
+          <div style="text-align: left;">
+            <div style="display: flex; align-items: center; gap: 0.55rem;">
+              <span style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary);">PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); display: block;">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </div>
+
+        <h1 class="auth-title">Create Your Account</h1>
+        <p class="auth-subtitle">Start discovering personal data and managing privacy evidence.</p>
+      </div>
+
+      <!-- Feedback Alert Box -->
+      <div class="auth-alert" id="authAlert" role="alert">
+        <span id="alertIcon">⚠️</span>
+        <span id="alertMessage"></span>
+      </div>
+
+      <!-- Registration Form -->
+      <form class="auth-form" id="registerForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="regFullName">Full Name</label>
+          <input 
+            type="text" 
+            id="regFullName" 
+            name="fullName" 
+            class="form-input" 
+            placeholder="User_Name" 
+            required 
+            autocomplete="name"
+            autofocus
+          >
+          <span class="form-error" id="nameError">Full name must be at least 2 characters.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regEmail">Work Email Address</label>
+          <input 
+            type="email" 
+            id="regEmail" 
+            name="email" 
+            class="form-input" 
+            placeholder="Enter a valid mail" 
+            required 
+            autocomplete="email"
+          >
+          <span class="form-error" id="emailError">Please enter a valid email address.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regPassword">Password</label>
+          <div class="password-input-wrap">
+            <input 
+              type="password" 
+              id="regPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="At least 8 characters" 
+              required 
+              autocomplete="new-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle-btn" 
+              id="toggleRegPasswordBtn" 
+              title="Show / Hide password" 
+              aria-label="Toggle password visibility"
+            >
+              <span id="toggleRegPasswordIcon">👁️</span>
+            </button>
+          </div>
+          <span class="form-hint">Must be at least 8 characters long.</span>
+          <span class="form-error" id="passwordError">Password must be at least 8 characters.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regConfirmPassword">Confirm Password</label>
+          <div class="password-input-wrap">
+            <input 
+              type="password" 
+              id="regConfirmPassword" 
+              name="confirmPassword" 
+              class="form-input" 
+              placeholder="Re-enter your password" 
+              required 
+              autocomplete="new-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle-btn" 
+              id="toggleConfirmPasswordBtn" 
+              title="Show / Hide password" 
+              aria-label="Toggle confirm password visibility"
+            >
+              <span id="toggleConfirmPasswordIcon">👁️</span>
+            </button>
+          </div>
+          <span class="form-error" id="confirmPasswordError">Passwords do not match.</span>
+        </div>
+
+        <button type="submit" class="auth-submit-btn" id="btnSubmitRegister">
+          <span id="btnSubmitSpinner" style="display: none;">⏳</span>
+          <span id="btnSubmitText">Create Account</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <!-- Navigation Footer -->
+      <div class="auth-footer">
+        <div>
+          <span>Already have an account?</span>
+          <a href="/login" id="linkToLogin">Sign in</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mandatory Technical Evidence Scope Disclaimer -->
+    <div style="max-width: 480px; margin-top: 1.5rem; text-align: center; font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
+      Technical Evidence Only: PrivSight analyzes candidate personal data and metadata records using configurable rules. Requires human verification.
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

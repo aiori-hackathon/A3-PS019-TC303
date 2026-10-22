@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In · PrivSight — Personal-Data Discovery & Evidence Inventory</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <!-- Top Bar with Theme Toggle -->
+    <div class="auth-top-bar" style="justify-content: flex-end;">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+        <span id="themeToggleIcon">☀️</span>
+      </button>
+    </div>
+
+    <!-- Login Card -->
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo-wrap" style="cursor: default;">
+          <div class="brand-symbol" style="width: 52px; height: 52px; font-size: 1.45rem;">PS</div>
+          <div style="text-align: left;">
+            <div style="display: flex; align-items: center; gap: 0.55rem;">
+              <span style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary);">PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); display: block;">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </div>
+
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your Privacy Intelligence Workspace.</p>
+      </div>
+
+      <!-- Feedback Alert Box -->
+      <div class="auth-alert" id="authAlert" role="alert">
+        <span id="alertIcon">⚠️</span>
+        <span id="alertMessage">Invalid email or password.</span>
+      </div>
+
+      <!-- Sign In Form -->
+      <form class="auth-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email Address</label>
+          <input 
+            type="email" 
+            id="loginEmail" 
+            name="email" 
+            class="form-input" 
+            placeholder="compliance@enterprise.com" 
+            required 
+            autocomplete="email"
+            autofocus
+          >
+          <span class="form-error" id="emailError">Please enter a valid email address.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <div class="password-input-wrap">
+            <input 
+              type="password" 
+              id="loginPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="••••••••••••" 
+              required 
+              autocomplete="current-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle-btn" 
+              id="togglePasswordBtn" 
+              title="Show / Hide password" 
+              aria-label="Toggle password visibility"
+            >
+              <span id="togglePasswordIcon">👁️</span>
+            </button>
+          </div>
+          <span class="form-error" id="passwordError">Please enter your password.</span>
+        </div>
+
+        <div class="auth-row">
+          <label class="remember-checkbox-label">
+            <input type="checkbox" id="rememberMe">
+            <span>Remember me (30 days)</span>
+          </label>
+          <a href="#" class="forgot-password-link" id="forgotPasswordBtn">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="auth-submit-btn" id="btnSubmitLogin">
+          <span id="btnSubmitSpinner" style="display: none;">⏳</span>
+          <span id="btnSubmitText">Sign In</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <!-- Navigation Footer -->
+      <div class="auth-footer">
+        <div>
+          <span>New to PrivSight?</span>
+          <a href="/register" id="linkToRegister">Create an account</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mandatory Technical Evidence Scope Disclaimer -->
+    <div style="max-width: 480px; margin-top: 1.5rem; text-align: center; font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
+      Technical Evidence Only: PrivSight analyzes candidate personal data and metadata records using configurable rules. Requires human verification.
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       FORGOT PASSWORD MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="forgotPasswordModal">
+    <div class="modal-content" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem; font-weight: 700;">Reset Your Password</h3>
+        <button id="closeForgotModalBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5;">
+          Enter your registered email address and we will initiate the secure password reset process.
+        </p>
+
+        <div class="auth-alert" id="forgotAlert" style="margin-bottom: 1rem;">
+          <span id="forgotAlertIcon">ℹ️</span>
+          <span id="forgotAlertMsg"></span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="forgotEmail">Email Address</label>
+          <input type="email" id="forgotEmail" class="form-input" placeholder="name@company.com">
+        </div>
+
+        <div id="devResetSection" style="display: none; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--gold-rich); margin-bottom: 0.35rem;">Development Password Reset</div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Because this local development environment does not have an external SMTP gateway configured, enter the reset token generated by the server and choose a new password.
+          </p>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="resetTokenInput">Reset Token</label>
+            <input type="text" id="resetTokenInput" class="form-input" placeholder="Paste reset token here">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="newPasswordInput">New Password (8+ chars)</label>
+            <input type="password" id="newPasswordInput" class="form-input" placeholder="New strong password">
+          </div>
+          <button type="button" class="btn btn-secondary-gold" id="btnSubmitReset" style="width: 100%;">
+            Apply New Password
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="cancelForgotBtn">Cancel</button>
+        <button class="btn btn-primary-orange" id="btnSendResetInstructions">Send Instructions</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

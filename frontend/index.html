@@ -1,439 +1,166 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Evidence Inventory · PS-019</title>
+  <title>Sign In · PrivSight — Personal-Data Discovery & Evidence Inventory</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 </head>
 <body>
-
-  <!-- Top App Navigation Header -->
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-icon">PS</div>
-      <div>
-        <div class="brand-title">Personal-Data Discovery & Evidence Inventory</div>
-        <div class="brand-sub">Prototype PS-019 · TC-303</div>
-      </div>
-    </div>
-    <div class="header-actions">
-      <div class="status-indicator">
-        <span class="dot" id="systemStatusDot"></span>
-        <span id="systemStatusText">API Connected</span>
-      </div>
-      <button class="btn btn-primary" id="btnRunScan">
-        <span id="scanBtnIcon">▶</span>
-        <span id="scanBtnLabel">Run Full Scan</span>
-      </button>
-      <button class="btn btn-secondary" id="btnRunAnalyze" title="Map metadata, build inventory & evaluate">
-        <span>⚙</span>
-        <span>Run Pipeline</span>
+  <div class="auth-wrapper">
+    <!-- Top Bar with Theme Toggle -->
+    <div class="auth-top-bar" style="justify-content: flex-end;">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+        <span id="themeToggleIcon">☀️</span>
       </button>
     </div>
-  </header>
 
-  <!-- Mandatory Scope Disclaimer Banner -->
-  <aside class="disclaimer-banner">
-    <div>
-      <span class="disclaimer-badge">Technical Evidence Only</span>
-      <span>This prototype identifies candidate personal-data fields using configurable technical rules and records evidence about declared purpose and retention metadata. Results require human review. Detection is not a legal determination, does not establish lawful basis, and does not prove universal data-flow coverage or regulatory compliance.</span>
+    <!-- Login Card -->
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo-wrap" style="cursor: default;">
+          <div class="brand-symbol" style="width: 52px; height: 52px; font-size: 1.45rem;">PS</div>
+          <div style="text-align: left;">
+            <div style="display: flex; align-items: center; gap: 0.55rem;">
+              <span style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary);">PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); display: block;">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </div>
+
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your Privacy Intelligence Workspace.</p>
+      </div>
+
+      <!-- Feedback Alert Box -->
+      <div class="auth-alert" id="authAlert" role="alert">
+        <span id="alertIcon">⚠️</span>
+        <span id="alertMessage">Invalid email or password.</span>
+      </div>
+
+      <!-- Sign In Form -->
+      <form class="auth-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email Address</label>
+          <input 
+            type="email" 
+            id="loginEmail" 
+            name="email" 
+            class="form-input" 
+            placeholder="compliance@enterprise.com" 
+            required 
+            autocomplete="email"
+            autofocus
+          >
+          <span class="form-error" id="emailError">Please enter a valid email address.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <div class="password-input-wrap">
+            <input 
+              type="password" 
+              id="loginPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="••••••••••••" 
+              required 
+              autocomplete="current-password"
+            >
+            <button 
+              type="button" 
+              class="password-toggle-btn" 
+              id="togglePasswordBtn" 
+              title="Show / Hide password" 
+              aria-label="Toggle password visibility"
+            >
+              <span id="togglePasswordIcon">👁️</span>
+            </button>
+          </div>
+          <span class="form-error" id="passwordError">Please enter your password.</span>
+        </div>
+
+        <div class="auth-row">
+          <label class="remember-checkbox-label">
+            <input type="checkbox" id="rememberMe">
+            <span>Remember me (30 days)</span>
+          </label>
+          <a href="#" class="forgot-password-link" id="forgotPasswordBtn">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="auth-submit-btn" id="btnSubmitLogin">
+          <span id="btnSubmitSpinner" style="display: none;">⏳</span>
+          <span id="btnSubmitText">Sign In</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <!-- Navigation Footer -->
+      <div class="auth-footer">
+        <div>
+          <span>New to PrivSight?</span>
+          <a href="/register" id="linkToRegister">Create an account</a>
+        </div>
+      </div>
     </div>
-  </aside>
 
-  <!-- Main Content Container -->
-  <main class="main-content">
-    
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs">
-      <button class="tab-btn active" data-tab="tab-overview">Overview</button>
-      <button class="tab-btn" data-tab="tab-inventory">Personal-Data Inventory</button>
-      <button class="tab-btn" data-tab="tab-gaps">Evidence Gaps</button>
-      <button class="tab-btn" data-tab="tab-evaluation">Ground-Truth Evaluation</button>
-      <button class="tab-btn" data-tab="tab-rules">Detection Rules</button>
-      <button class="tab-btn" data-tab="tab-reports">Reports & Downloads</button>
-    </nav>
+    <!-- Mandatory Technical Evidence Scope Disclaimer -->
+    <div style="max-width: 480px; margin-top: 1.5rem; text-align: center; font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
+      Technical Evidence Only: PrivSight analyzes candidate personal data and metadata records using configurable rules. Requires human verification.
+    </div>
+  </div>
 
-    <!-- TAB 1: OVERVIEW -->
-    <section class="tab-pane active" id="tab-overview">
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-title">Fields Scanned</div>
-          <div class="stat-val font-mono" id="statScannedFields">--</div>
-          <div class="stat-sub">Across 3 CSVs + 3 SQL tables</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">PII Candidates Detected</div>
-          <div class="stat-val font-mono" id="statCandidates">--</div>
-          <div class="stat-sub">Across 5 technical classes</div>
-        </div>
-        <div class="stat-card emerald">
-          <div class="stat-title">Complete Metadata</div>
-          <div class="stat-val font-mono" id="statComplete">--</div>
-          <div class="stat-sub">Purpose & retention declared</div>
-        </div>
-        <div class="stat-card amber">
-          <div class="stat-title">Evidence Gaps</div>
-          <div class="stat-val font-mono" id="statGaps">--</div>
-          <div class="stat-sub">Missing / unmapped metadata</div>
-        </div>
-        <div class="stat-card rose">
-          <div class="stat-title">Human Review Required</div>
-          <div class="stat-val font-mono" id="statReviewRequired">--</div>
-          <div class="stat-sub">Medium / Low confidence or conflict</div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem;">
-        
-        <!-- Gap Breakdown Summary -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Evidence Gaps by Status Category</h3>
-          </div>
-          <div class="card-body">
-            <div id="gapStatusList" style="display: flex; flex-direction: column; gap: 0.85rem;">
-              <div style="color: var(--text-muted); font-size: 0.85rem;">Loading gap distribution...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Evaluation Quick Summary -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Ground-Truth Benchmark Snapshot</h3>
-            <span class="badge badge-class-contact">Synthetic Reference</span>
-          </div>
-          <div class="card-body" id="overviewEvalSnapshot">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
-              <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; text-align: center;">
-                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Precision</div>
-                <div class="font-mono" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-cyan);" id="ovPrecision">--</div>
-              </div>
-              <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; text-align: center;">
-                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Recall</div>
-                <div class="font-mono" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-emerald);" id="ovRecall">--</div>
-              </div>
-              <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px; text-align: center;">
-                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">F1-Score</div>
-                <div class="font-mono" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-teal);" id="ovF1">--</div>
-              </div>
-            </div>
-            <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
-              Evaluated against 84 hand-labelled fields (40 positive, 44 negative). Tested with one-vs-rest evaluation per class.
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- TAB 2: PERSONAL-DATA INVENTORY -->
-    <section class="tab-pane" id="tab-inventory">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Discovered Personal-Data Evidence Inventory</h3>
-          <span style="font-size: 0.8rem; color: var(--text-secondary);" id="inventoryCounter">0 records</span>
-        </div>
-        <div class="card-body">
-          <div class="toolbar">
-            <input type="text" class="search-input" id="invSearchInput" placeholder="Search field, table, source, or purpose...">
-            <select class="select-input" id="invClassFilter">
-              <option value="All">All Data Classes</option>
-              <option value="Identity">Identity</option>
-              <option value="Contact">Contact</option>
-              <option value="Location">Location</option>
-              <option value="Financial">Financial</option>
-              <option value="Sensitive/Health">Sensitive/Health</option>
-            </select>
-            <select class="select-input" id="invStatusFilter">
-              <option value="All">All Metadata Statuses</option>
-              <option value="Complete">Complete</option>
-              <option value="Purpose Missing">Purpose Missing</option>
-              <option value="Retention Missing">Retention Missing</option>
-              <option value="Purpose & Retention Missing">Both Missing</option>
-              <option value="Not Mapped">Not Mapped</option>
-            </select>
-            <select class="select-input" id="invReviewFilter">
-              <option value="All">All Confidence / Triage</option>
-              <option value="true">Review Required Only</option>
-              <option value="false">High Confidence Only</option>
-            </select>
-            <button class="btn btn-secondary" id="btnResetInvFilter">Reset Filters</button>
-          </div>
-
-          <div class="table-container">
-            <table id="inventoryTable">
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Field Name</th>
-                  <th>Detected Class</th>
-                  <th>Confidence</th>
-                  <th>Triage</th>
-                  <th>Purpose</th>
-                  <th>Retention</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="inventoryTableBody">
-                <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading inventory data...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 3: EVIDENCE GAPS -->
-    <section class="tab-pane" id="tab-gaps">
-      <div class="callout callout-warning">
-        <strong>Evidence Gap Definition:</strong> An evidence gap indicates that technical discovery identified a candidate personal-data field, but the organisation's declared governance metadata is missing or incomplete. <em>Evidence gaps require human review and do not constitute legal violations.</em>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Missing & Incomplete Governance Metadata</h3>
-          <span style="font-size: 0.8rem; color: var(--text-secondary);" id="gapsCounter">0 gaps</span>
-        </div>
-        <div class="card-body">
-          <div class="toolbar">
-            <input type="text" class="search-input" id="gapsSearchInput" placeholder="Search missing fields or evidence notes...">
-            <select class="select-input" id="gapsStatusFilter">
-              <option value="All">All Gap Types</option>
-              <option value="Retention Missing">Retention Missing</option>
-              <option value="Purpose Missing">Purpose Missing</option>
-              <option value="Purpose & Retention Missing">Purpose & Retention Missing</option>
-              <option value="Not Mapped">Not Mapped (No Entry)</option>
-            </select>
-            <select class="select-input" id="gapsClassFilter">
-              <option value="All">All Data Classes</option>
-              <option value="Identity">Identity</option>
-              <option value="Contact">Contact</option>
-              <option value="Location">Location</option>
-              <option value="Financial">Financial</option>
-              <option value="Sensitive/Health">Sensitive/Health</option>
-            </select>
-          </div>
-
-          <div class="table-container">
-            <table id="gapsTable">
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Field Name</th>
-                  <th>Class</th>
-                  <th>Gap Classification</th>
-                  <th>Missing Items</th>
-                  <th>Evidence Note</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="gapsTableBody">
-                <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading evidence gaps...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 4: GROUND-TRUTH EVALUATION -->
-    <section class="tab-pane" id="tab-evaluation">
-      
-      <div class="callout">
-        <strong>Evaluation Methodology:</strong> Performance is calculated using a <em>one-vs-rest</em> approach against the hand-labelled synthetic benchmark dataset (<code>data/ground_truth.csv</code>). Undefined denominators are surfaced explicitly as <code>N/A</code> with status notes.
-      </div>
-
-      <!-- Binary Detection Stats -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">1. Binary Candidate Detection Performance (PII vs Non-PII)</h3>
-        </div>
-        <div class="card-body">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px;">
-              <div class="stat-title">Detection Precision</div>
-              <div class="font-mono" style="font-size: 1.6rem; font-weight: 700; color: var(--accent-cyan);" id="detPrecision">--</div>
-              <div class="stat-sub">TP / (TP + FP)</div>
-            </div>
-            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px;">
-              <div class="stat-title">Detection Recall</div>
-              <div class="font-mono" style="font-size: 1.6rem; font-weight: 700; color: var(--accent-emerald);" id="detRecall">--</div>
-              <div class="stat-sub">TP / (TP + FN)</div>
-            </div>
-            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px;">
-              <div class="stat-title">Detection F1-Score</div>
-              <div class="font-mono" style="font-size: 1.6rem; font-weight: 700; color: var(--accent-teal);" id="detF1">--</div>
-              <div class="stat-sub">Harmonic Mean</div>
-            </div>
-            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px;">
-              <div class="stat-title">Confusion Breakdown</div>
-              <div class="font-mono" style="font-size: 0.95rem; line-height: 1.6;" id="detCounts">TP: -- | FP: -- | FN: -- | TN: --</div>
-              <div class="stat-sub">Total 84 evaluated</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Per-Class Metrics Table -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">2. Per-Class One-vs-Rest Metrics</h3>
-        </div>
-        <div class="card-body">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Class Name</th>
-                  <th>TP</th>
-                  <th>FP</th>
-                  <th>FN</th>
-                  <th>Support (GT)</th>
-                  <th>Precision</th>
-                  <th>Recall</th>
-                  <th>F1-Score</th>
-                  <th>Sample Status</th>
-                </tr>
-              </thead>
-              <tbody id="perClassTableBody">
-                <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading per-class metrics...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Confusion Matrix & Errors -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
-        
-        <!-- Confusion Matrix -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">3. Confusion Matrix Grid</h3>
-          </div>
-          <div class="card-body">
-            <div class="table-container">
-              <table id="confusionMatrixTable">
-                <thead>
-                  <tr id="cmHeaderRow"><th>Expected \ Pred</th></tr>
-                </thead>
-                <tbody id="cmBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Discrepancy Error Records -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">4. Classification Discrepancies (<span id="errorCountBadge">0</span>)</h3>
-          </div>
-          <div class="card-body" style="max-height: 380px; overflow-y: auto;" id="errorListContainer">
-            <div style="color: var(--text-muted); font-size: 0.85rem;">Loading discrepancies...</div>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- TAB 5: DETECTION RULES (READ-ONLY) -->
-    <section class="tab-pane" id="tab-rules">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Configured Technical Detection Rules</h3>
-          <span style="font-size: 0.8rem; color: var(--text-secondary);">backend/config/rules.json (Read-Only)</span>
-        </div>
-        <div class="card-body">
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-            The engine detects personal data using an additive scoring model: column-name normalization, pandas data-type hints, and sample value pattern validation.
-          </p>
-          <div id="rulesContainer" style="display: flex; flex-direction: column; gap: 1.25rem;">
-            <div style="color: var(--text-muted); font-size: 0.85rem;">Loading rules configuration...</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 6: REPORTS & DOWNLOADS -->
-    <section class="tab-pane" id="tab-reports">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Approved Technical Reports & Evidence Exports</h3>
-        </div>
-        <div class="card-body">
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-            Download structured CSV and JSON exports generated directly by the scanner, metadata mapping, and evaluation engines.
-          </p>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
-            
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-cyan);">Evidence Inventory (CSV)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Unified tabular inventory of all 50 detected candidate fields.</p>
-              <a href="/api/reports/evidence_inventory.csv" class="btn btn-secondary" download>Download CSV</a>
-            </div>
-
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-cyan);">Evidence Inventory (JSON)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Structured JSON inventory with complete summary statistics.</p>
-              <a href="/api/reports/evidence_inventory.json" class="btn btn-secondary" download>Download JSON</a>
-            </div>
-
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-amber);">Evidence Gaps (CSV)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Filtered list of candidate fields with missing purpose or retention.</p>
-              <a href="/api/reports/evidence_gaps.csv" class="btn btn-secondary" download>Download CSV</a>
-            </div>
-
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-emerald);">Per-Class Evaluation (CSV)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Precision, recall, F1, and support for each data class.</p>
-              <a href="/api/reports/evaluation_per_class.csv" class="btn btn-secondary" download>Download CSV</a>
-            </div>
-
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-purple);">Confusion Matrix (CSV)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Ground-truth vs predicted class matrix grid.</p>
-              <a href="/api/reports/evaluation_confusion_matrix.csv" class="btn btn-secondary" download>Download CSV</a>
-            </div>
-
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.15rem; border-radius: 6px;">
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--accent-rose);">Evaluation Discrepancies (CSV)</h4>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Individual mismatch records with error type and detection reason.</p>
-              <a href="/api/reports/evaluation_errors.csv" class="btn btn-secondary" download>Download CSV</a>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Detail Modal -->
-  <div class="modal-overlay" id="detailModal">
-    <div class="modal-content">
+  <!-- ====================================================================
+       FORGOT PASSWORD MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="forgotPasswordModal">
+    <div class="modal-content" style="max-width: 460px;">
       <div class="modal-header">
-        <h3 style="font-size: 1.05rem; font-weight: 600;" id="modalFieldTitle">Field Evidence Details</h3>
-        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">✕</button>
+        <h3 style="font-size: 1.1rem; font-weight: 700;">Reset Your Password</h3>
+        <button id="closeForgotModalBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
       </div>
-      <div class="modal-body" id="modalDetailsBody">
-        <!-- Rendered dynamically -->
+      <div class="modal-body" style="padding: 1.5rem;">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5;">
+          Enter your registered email address and we will initiate the secure password reset process.
+        </p>
+
+        <div class="auth-alert" id="forgotAlert" style="margin-bottom: 1rem;">
+          <span id="forgotAlertIcon">ℹ️</span>
+          <span id="forgotAlertMsg"></span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="forgotEmail">Email Address</label>
+          <input type="email" id="forgotEmail" class="form-input" placeholder="name@company.com">
+        </div>
+
+        <div id="devResetSection" style="display: none; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--gold-rich); margin-bottom: 0.35rem;">Development Password Reset</div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Because this local development environment does not have an external SMTP gateway configured, enter the reset token generated by the server and choose a new password.
+          </p>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="resetTokenInput">Reset Token</label>
+            <input type="text" id="resetTokenInput" class="form-input" placeholder="Paste reset token here">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="newPasswordInput">New Password (8+ chars)</label>
+            <input type="password" id="newPasswordInput" class="form-input" placeholder="New strong password">
+          </div>
+          <button type="button" class="btn btn-secondary-gold" id="btnSubmitReset" style="width: 100%;">
+            Apply New Password
+          </button>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="modalCloseBtnFooter">Close</button>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="cancelForgotBtn">Cancel</button>
+        <button class="btn btn-primary-orange" id="btnSendResetInstructions">Send Instructions</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <!-- Dashboard JavaScript Application -->
   <script src="/static/app.js"></script>
 </body>
 </html>

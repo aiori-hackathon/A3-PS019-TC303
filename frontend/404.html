@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Page Not Found · PrivSight</title>
+  <meta name="description" content="The page you requested could not be found.">
+  
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="landing-layout">
+
+  <!-- Header -->
+  <header class="landing-header">
+    <div class="landing-nav-container">
+      <a href="/" class="landing-brand">
+        <div class="brand-symbol">PS</div>
+        <div class="brand-info">
+          <div class="brand-name">
+            <span>PrivSight</span>
+            <span class="brand-tag">PS-019</span>
+          </div>
+          <span class="brand-desc" style="display:block;">Personal-Data Discovery & Evidence Inventory</span>
+        </div>
+      </a>
+      <div class="landing-nav-actions">
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+          <span id="themeToggleIcon">☀️</span>
+        </button>
+        <a href="/workspace" class="btn btn-primary-orange" style="text-decoration:none;">Launch Workspace →</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 404 Main Container -->
+  <main style="flex:1; display:flex; align-items:center; justify-content:center;">
+    <div class="error-page-container">
+      <div class="error-code font-mono">404</div>
+      <h1 class="error-title">Page Not Found</h1>
+      <p class="error-desc">
+        The compliance asset or workspace route you are attempting to access does not exist or has been relocated within the PrivSight architecture.
+      </p>
+
+      <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; justify-content:center;">
+        <a href="/" class="btn btn-secondary-gold" style="text-decoration:none; padding:0.75rem 1.4rem; font-weight:700;">
+          ← Return to Home
+        </a>
+        <a href="/workspace" class="btn btn-primary-orange" style="text-decoration:none; padding:0.75rem 1.4rem; font-weight:700;">
+          Open Workspace Dashboard →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="landing-footer" style="padding: 2rem 1.5rem; text-align: center;">
+    <div style="font-size:0.8rem; color:var(--text-muted);">&copy; 2026 PrivSight Team &bull; Hackathon PS-019 &bull; Technical Evidence for Human Review Only</div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

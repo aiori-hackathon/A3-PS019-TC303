@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Reports & Downloads</title>
+  <meta name="description" content="Download approved CSV and JSON technical privacy inventory and evaluation reports">
+  
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Evidence Gaps</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item active" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports & Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Synthetic Benchmark</div>
+          <div>84 Labelled Fields · Multi-Class</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">Reports & Downloads</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">API Connected</span>
+          </div>
+
+          <!-- Primary Actions -->
+          <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
+            <span id="scanBtnIcon">▶</span>
+            <span id="scanBtnLabel">Run Full Scan</span>
+          </button>
+
+          <button class="btn btn-secondary-gold" id="btnRunAnalyze" title="Map metadata, build unified inventory and evaluation">
+            <span>⚙</span>
+            <span>Run Pipeline</span>
+          </button>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Technical Evidence Only</span>
+        <span>TECHNICAL EVIDENCE ONLY: This prototype identifies candidate personal-data fields using configurable technical rules and records evidence about declared purpose and retention metadata. Results require human review. Detection is not a legal determination, does not establish lawful basis, and does not prove universal data-flow coverage or regulatory compliance.</span>
+      </aside>
+
+      <!-- Main Workspace Views -->
+      <main class="workspace-content">
+        
+        <!-- ================================================================
+             REPORTS & DOWNLOADS PAGE
+             ================================================================ -->
+        <section class="tab-pane active" id="tab-reports" style="display: block;">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Approved Technical Reports & Evidence Exports</h3>
+            </div>
+            <div class="card-body">
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                Download authoritative CSV and JSON export reports generated directly by the scanner, metadata mapping, and evaluation engines.
+              </p>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem;">
+                
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--accent-gold); font-weight: 700;">Evidence Inventory</h4>
+                      <span class="badge" style="background: var(--accent-gold-soft); color: var(--accent-gold);">CSV</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Complete unified tabular inventory of all discovered candidate personal-data fields.</p>
+                  </div>
+                  <a href="/api/reports/evidence_inventory.csv" class="btn btn-secondary-gold" download>Download CSV</a>
+                </div>
+
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--accent-gold); font-weight: 700;">Evidence Inventory</h4>
+                      <span class="badge" style="background: var(--accent-gold-soft); color: var(--accent-gold);">JSON</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Machine-readable structured inventory including full summary and metadata status counts.</p>
+                  </div>
+                  <a href="/api/reports/evidence_inventory.json" class="btn btn-secondary-gold" download>Download JSON</a>
+                </div>
+
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--orange-primary); font-weight: 700;">Evidence Gaps</h4>
+                      <span class="badge" style="background: var(--accent-orange-soft); color: var(--orange-primary);">CSV</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Actionable report of fields with missing purpose, missing retention, or unmapped policies.</p>
+                  </div>
+                  <a href="/api/reports/evidence_gaps.csv" class="btn btn-primary-orange" download>Download CSV</a>
+                </div>
+
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--color-success); font-weight: 700;">Per-Class Evaluation</h4>
+                      <span class="badge" style="background: var(--color-success-bg); color: var(--color-success);">CSV</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Precision, recall, F1, and support breakdown across all 5 technical classification categories.</p>
+                  </div>
+                  <a href="/api/reports/evaluation_per_class.csv" class="btn btn-secondary" download>Download CSV</a>
+                </div>
+
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--accent-gold); font-weight: 700;">Confusion Matrix</h4>
+                      <span class="badge" style="background: var(--accent-gold-soft); color: var(--accent-gold);">CSV</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Tabular grid comparing expected ground truth classes against predicted classes.</p>
+                  </div>
+                  <a href="/api/reports/evaluation_confusion_matrix.csv" class="btn btn-secondary" download>Download CSV</a>
+                </div>
+
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                      <h4 style="font-size: 0.95rem; color: var(--color-danger); font-weight: 700;">Evaluation Discrepancies</h4>
+                      <span class="badge" style="background: var(--color-danger-bg); color: var(--color-danger);">CSV</span>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">Granular error analysis for individual false positives, false negatives, and misclassifications.</p>
+                  </div>
+                  <a href="/api/reports/evaluation_errors.csv" class="btn btn-secondary" download>Download CSV</a>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DETAIL INSPECTOR MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem; font-weight: 700;" id="modalFieldTitle">Field Evidence Details</h3>
+        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCloseBtnFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dashboard JavaScript Application -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

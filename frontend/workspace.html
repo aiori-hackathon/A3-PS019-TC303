@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Workspace Overview</title>
+  <meta name="description" content="Privacy Intelligence Workspace - Personal-Data Discovery & Technical Evidence Dashboard">
+  
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item active" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Evidence Gaps</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports & Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Synthetic Benchmark</div>
+          <div>84 Labelled Fields · Multi-Class</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">Overview Workspace</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">API Connected</span>
+          </div>
+
+          <!-- Primary Actions -->
+          <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
+            <span id="scanBtnIcon">▶</span>
+            <span id="scanBtnLabel">Run Full Scan</span>
+          </button>
+
+          <button class="btn btn-secondary-gold" id="btnRunAnalyze" title="Map metadata, build unified inventory and evaluation">
+            <span>⚙</span>
+            <span>Run Pipeline</span>
+          </button>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Technical Evidence Only</span>
+        <span>TECHNICAL EVIDENCE ONLY: This prototype identifies candidate personal-data fields using configurable technical rules and records evidence about declared purpose and retention metadata. Results require human review. Detection is not a legal determination, does not establish lawful basis, and does not prove universal data-flow coverage or regulatory compliance.</span>
+      </aside>
+
+      <!-- Main Workspace Views -->
+      <main class="workspace-content">
+        
+        <!-- ================================================================
+             WORKSPACE OVERVIEW
+             ================================================================ -->
+        <section class="tab-pane active" id="tab-overview" style="display: block;">
+          
+          <!-- Key Performance Indicators (KPIs) -->
+          <div class="kpi-grid">
+            <div class="kpi-card gold">
+              <div class="kpi-header">
+                <span class="kpi-title">Fields Scanned</span>
+                <span class="kpi-icon-badge">🔍</span>
+              </div>
+              <div class="kpi-value font-mono" id="statScannedFields">--</div>
+              <div class="kpi-sub">Across 3 CSVs + 3 SQL tables</div>
+            </div>
+
+            <div class="kpi-card orange">
+              <div class="kpi-header">
+                <span class="kpi-title">PII Candidates</span>
+                <span class="kpi-icon-badge">🛡️</span>
+              </div>
+              <div class="kpi-value font-mono" id="statCandidates">--</div>
+              <div class="kpi-sub">Across 5 technical data classes</div>
+            </div>
+
+            <div class="kpi-card emerald">
+              <div class="kpi-header">
+                <span class="kpi-title">Complete Metadata</span>
+                <span class="kpi-icon-badge">✔</span>
+              </div>
+              <div class="kpi-value font-mono" id="statComplete">--</div>
+              <div class="kpi-sub">Purpose & retention declared</div>
+            </div>
+
+            <div class="kpi-card amber">
+              <div class="kpi-header">
+                <span class="kpi-title">Evidence Gaps</span>
+                <span class="kpi-icon-badge">⚠️</span>
+              </div>
+              <div class="kpi-value font-mono" id="statGaps">--</div>
+              <div class="kpi-sub">Missing or unmapped policies</div>
+            </div>
+
+            <div class="kpi-card rose">
+              <div class="kpi-header">
+                <span class="kpi-title">Human Review</span>
+                <span class="kpi-icon-badge">👤</span>
+              </div>
+              <div class="kpi-value font-mono" id="statReviewRequired">--</div>
+              <div class="kpi-sub">Medium / Low confidence or conflict</div>
+            </div>
+          </div>
+
+          <!-- Visual Insights Row -->
+          <div class="overview-grid">
+            
+            <!-- Card 1: Evidence Gaps Distribution -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Evidence Gaps by Category</h3>
+                <span class="badge badge-class-identity" id="overviewGapsTotalBadge">-- Gaps</span>
+              </div>
+              <div class="card-body">
+                <div id="gapStatusList" class="progress-list">
+                  <div style="color: var(--text-muted); font-size: 0.85rem;">Loading gap distribution...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: PII Candidates by Technical Class -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Candidates by Data Class</h3>
+                <span class="badge badge-class-contact">5 Classes</span>
+              </div>
+              <div class="card-body">
+                <div id="classDistributionList" class="progress-list">
+                  <div style="color: var(--text-muted); font-size: 0.85rem;">Loading technical class distribution...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Governance Metadata Health & Benchmark Snapshot -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Benchmark Snapshot</h3>
+                <span class="badge badge-status-complete">Hand-Labelled GT</span>
+              </div>
+              <div class="card-body" id="overviewEvalSnapshot">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+                  <div class="metric-highlight-box">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Precision</div>
+                    <div class="font-mono metric-highlight-val" style="color: var(--accent-gold);" id="ovPrecision">--</div>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">TP / (TP+FP)</div>
+                  </div>
+                  <div class="metric-highlight-box">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Recall</div>
+                    <div class="font-mono metric-highlight-val" style="color: var(--color-success);" id="ovRecall">--</div>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">TP / (TP+FN)</div>
+                  </div>
+                  <div class="metric-highlight-box">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">F1-Score</div>
+                    <div class="font-mono metric-highlight-val" style="color: var(--orange-primary);" id="ovF1">--</div>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">Harmonic Mean</div>
+                  </div>
+                </div>
+
+                <!-- Governance Progress Meter -->
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 0.45rem;">
+                    <span style="font-weight: 600;">Governance Completeness</span>
+                    <span class="font-mono" style="font-weight: 700; color: var(--accent-gold);" id="ovCompletenessPercent">--%</span>
+                  </div>
+                  <div class="progress-track" style="height: 8px;">
+                    <div class="progress-fill gold" id="ovCompletenessBar" style="width: 0%;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+                    <span id="ovCompleteSub">-- Complete</span>
+                    <span id="ovGapsSub">-- Evidence Gaps</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Priority Review Queue Section -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Priority Human Review Queue</h3>
+              <span class="badge badge-review" id="reviewQueueBadge">0 Pending Triage</span>
+            </div>
+            <div class="card-body">
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Fields below triggered automated triage flags due to medium confidence scores, borderline data types, or conflicting keyword-vs-pattern indicators.
+              </p>
+              <div id="priorityReviewList" style="display: flex; flex-direction: column; gap: 0.65rem;">
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Loading review items...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Navigation Cards to Other Pages -->
+          <div style="margin-top: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 0.85rem;">
+              Explore Workspace Sections
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+              
+              <a href="/inventory" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--accent-gold); font-weight: 700;">Personal-Data Inventory</h4>
+                    <span style="font-size: 1.25rem;">🗄️</span>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
+                    Search and filter discovered candidate fields across CSVs and SQLite database with confidence scores and triage flags.
+                  </p>
+                </div>
+                <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 0.35rem;">
+                  Open Inventory <span>→</span>
+                </div>
+              </a>
+
+              <a href="/evidence-gaps" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--orange-primary); font-weight: 700;">Evidence Gaps</h4>
+                    <span style="font-size: 1.25rem;">⚠️</span>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
+                    Review candidate fields where declared business purpose or retention schedule is missing or unmapped.
+                  </p>
+                </div>
+                <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--orange-primary); display: flex; align-items: center; gap: 0.35rem;">
+                  Review Gaps <span>→</span>
+                </div>
+              </a>
+
+              <a href="/evaluation" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--color-success); font-weight: 700;">Ground-Truth Evaluation</h4>
+                    <span style="font-size: 1.25rem;">🎯</span>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
+                    Inspect precision, recall, F1 scores, confusion matrix, and false positive/negative discrepancy logs.
+                  </p>
+                </div>
+                <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--color-success); display: flex; align-items: center; gap: 0.35rem;">
+                  View Metrics <span>→</span>
+                </div>
+              </a>
+
+              <a href="/reports" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--color-info); font-weight: 700;">Reports & Exports</h4>
+                    <span style="font-size: 1.25rem;">📥</span>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
+                    Download authoritative CSV and JSON evidence inventories, gap reports, and confusion matrices.
+                  </p>
+                </div>
+                <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--color-info); display: flex; align-items: center; gap: 0.35rem;">
+                  Download Reports <span>→</span>
+                </div>
+              </a>
+
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DETAIL INSPECTOR MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem; font-weight: 700;" id="modalFieldTitle">Field Evidence Details</h3>
+        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCloseBtnFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dashboard JavaScript Application -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -28,12 +28,13 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from backend.auth.routes import SESSION_COOKIE_NAME, auth_router, auth_service
 from backend.evaluation.evaluator import DEFAULT_GROUND_TRUTH_PATH, Evaluator
 from backend.evaluation.reporting import EvaluationReporter
 from backend.metadata.gap_report import GapReportGenerator
@@ -78,6 +79,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Authentication router for user registration, sessions, and login
+app.include_router(auth_router)
 
 
 # ---------------------------------------------------------------------------
@@ -494,18 +498,121 @@ def download_report(report_name: str):
 
 
 # ---------------------------------------------------------------------------
-# 10. Frontend Static File Serving
+# 10. Frontend Multi-Page Static & HTML Serving
 # ---------------------------------------------------------------------------
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-    @app.get("/")
-    def serve_frontend_index():
-        """Serves the dashboard index.html."""
-        index_file = FRONTEND_DIR / "index.html"
-        if index_file.exists():
-            return FileResponse(str(index_file))
+    def _serve_page(filename: str, no_cache: bool = False):
+        filepath = FRONTEND_DIR / filename
+        if filepath.exists():
+            headers = {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"} if no_cache else {}
+            return FileResponse(str(filepath), headers=headers)
         return JSONResponse(
             status_code=404,
-            content={"message": "Frontend index.html is being prepared."},
+            content={"message": f"Page '{filename}' not found."},
         )
+
+    def _require_auth_page(request: Request, filename: str):
+        token = request.cookies.get(SESSION_COOKIE_NAME)
+        user = auth_service.get_user_by_session(token) if token else None
+        if not user:
+            target_path = request.url.path
+            return RedirectResponse(
+                url=f"/login?redirect={target_path}",
+                status_code=303,
+                headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
+            )
+        return _serve_page(filename, no_cache=True)
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
+    def serve_frontend_root(request: Request):
+        """Root route: If authenticated, redirects to workspace; if unauthenticated, serves login page."""
+        token = request.cookies.get(SESSION_COOKIE_NAME)
+        user = auth_service.get_user_by_session(token) if token else None
+        if user:
+            return RedirectResponse(url="/workspace", status_code=303)
+        return _serve_page("login.html")
+
+    @app.get("/login", include_in_schema=False)
+    @app.get("/login.html", include_in_schema=False)
+    def serve_frontend_login(request: Request):
+        """Serves the dedicated login page. If already authenticated, redirects to workspace."""
+        token = request.cookies.get(SESSION_COOKIE_NAME)
+        user = auth_service.get_user_by_session(token) if token else None
+        if user:
+            redirect_param = request.query_params.get("redirect", "/workspace")
+            if not redirect_param.startswith("/"):
+                redirect_param = "/workspace"
+            return RedirectResponse(url=redirect_param, status_code=303)
+        return _serve_page("login.html")
+
+    @app.get("/register", include_in_schema=False)
+    @app.get("/register.html", include_in_schema=False)
+    def serve_frontend_register(request: Request):
+        """Serves the dedicated registration page. If already authenticated, redirects to workspace."""
+        token = request.cookies.get(SESSION_COOKIE_NAME)
+        user = auth_service.get_user_by_session(token) if token else None
+        if user:
+            return RedirectResponse(url="/workspace", status_code=303)
+        return _serve_page("register.html")
+
+    @app.get("/workspace", include_in_schema=False)
+    @app.get("/workspace.html", include_in_schema=False)
+    @app.get("/overview", include_in_schema=False)
+    @app.get("/overview.html", include_in_schema=False)
+    def serve_frontend_workspace(request: Request):
+        """Serves the main workspace overview dashboard (protected)."""
+        return _require_auth_page(request, "workspace.html")
+
+    @app.get("/inventory", include_in_schema=False)
+    @app.get("/inventory.html", include_in_schema=False)
+    def serve_frontend_inventory(request: Request):
+        """Serves the personal-data inventory page (protected)."""
+        return _require_auth_page(request, "inventory.html")
+
+    @app.get("/evidence-gaps", include_in_schema=False)
+    @app.get("/evidence-gaps.html", include_in_schema=False)
+    @app.get("/gaps", include_in_schema=False)
+    @app.get("/gaps.html", include_in_schema=False)
+    def serve_frontend_gaps(request: Request):
+        """Serves the evidence gaps page (protected)."""
+        return _require_auth_page(request, "gaps.html")
+
+    @app.get("/evaluation", include_in_schema=False)
+    @app.get("/evaluation.html", include_in_schema=False)
+    def serve_frontend_evaluation(request: Request):
+        """Serves the ground-truth evaluation page (protected)."""
+        return _require_auth_page(request, "evaluation.html")
+
+    @app.get("/rules", include_in_schema=False)
+    @app.get("/rules.html", include_in_schema=False)
+    def serve_frontend_rules(request: Request):
+        """Serves the detection rules page (protected)."""
+        return _require_auth_page(request, "rules.html")
+
+    @app.get("/reports", include_in_schema=False)
+    @app.get("/reports.html", include_in_schema=False)
+    def serve_frontend_reports(request: Request):
+        """Serves the reports & downloads page (protected)."""
+        return _require_auth_page(request, "reports.html")
+
+    @app.get("/404", include_in_schema=False)
+    @app.get("/404.html", include_in_schema=False)
+    def serve_frontend_404():
+        """Serves the custom 404 error page."""
+        return _serve_page("404.html")
+
+    @app.exception_handler(404)
+    async def custom_404_handler(request, exc):
+        """Custom 404 handler returning 404.html for browser routes and JSON for API."""
+        if request.url.path.startswith("/api/"):
+            return JSONResponse(
+                status_code=404,
+                content={"detail": getattr(exc, "detail", "Not Found")},
+            )
+        file_404 = FRONTEND_DIR / "404.html"
+        if file_404.exists():
+            return FileResponse(str(file_404), status_code=404)
+        return JSONResponse(status_code=404, content={"detail": "Page not found."})
