@@ -1,0 +1,4 @@
+user_id,full_name,email_address,contact_phone,ip_address,created_at
+1001,Alice Walker,alice.walker@enterprise.com,+1-555-8822,198.51.100.42,2026-01-15
+1002,Bob Martin,bob.martin@corp.org,+1-555-9933,203.0.113.19,2026-02-20
+1003,Charlie Davis,charlie.d@techco.net,+1-555-1144,192.0.2.88,2026-03-10

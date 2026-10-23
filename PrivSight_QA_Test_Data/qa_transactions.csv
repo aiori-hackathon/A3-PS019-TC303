@@ -1,0 +1,13 @@
+transaction_id,customer_id,billing_email,billing_phone,amount,payment_method,order_status,store_channel,item_count
+TXN-QA-88001,CUST-QA-1001,eleanor.billing@example.com,+1-555-0101,149.99,Credit Card,COMPLETED,Web Store,3
+TXN-QA-88002,CUST-QA-1002,marcus.billing@example.com,+1-555-0102,84.50,Debit Card,COMPLETED,Mobile App,1
+TXN-QA-88003,CUST-QA-1003,amina.billing@example.com,+1-555-0103,320.00,Credit Card,COMPLETED,Web Store,5
+TXN-QA-88004,CUST-QA-1004,liam.billing@example.com,+1-555-0104,12.75,Wire Transfer,REFUNDED,In-Store POS,1
+TXN-QA-88005,CUST-QA-1005,sofia.billing@example.com,+1-555-0105,450.25,Credit Card,COMPLETED,Web Store,6
+TXN-QA-88006,CUST-QA-1006,david.billing@example.com,+1-555-0106,75.00,Debit Card,PROCESSING,Mobile App,2
+TXN-QA-88007,CUST-QA-1007,fatima.billing@example.com,+1-555-0107,189.90,Credit Card,COMPLETED,Web Store,4
+TXN-QA-88008,CUST-QA-1008,lucas.billing@example.com,+1-555-0108,62.40,Debit Card,COMPLETED,In-Store POS,2
+TXN-QA-88009,CUST-QA-1009,priya.billing@example.com,+1-555-0109,210.00,Credit Card,COMPLETED,Web Store,3
+TXN-QA-88010,CUST-QA-1010,alex.billing@example.com,+1-555-0110,95.50,Credit Card,COMPLETED,Mobile App,2
+TXN-QA-88011,CUST-QA-1011,elena.billing@example.com,+1-555-0111,530.80,Wire Transfer,PENDING,Web Store,8
+TXN-QA-88012,CUST-QA-1012,tariq.billing@example.com,+1-555-0112,39.99,Debit Card,CANCELLED,In-Store POS,1

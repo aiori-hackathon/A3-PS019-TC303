@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppliers>
+  <supplier>
+    <id>SUP-101</id>
+    <full_name>Marcus Vance</full_name>
+    <email_address>marcus.vance@supplychain.net</email_address>
+    <phone_number>+1-555-789-0123</phone_number>
+    <country>Canada</country>
+  </supplier>
+  <supplier>
+    <id>SUP-102</id>
+    <full_name>Amara Okafor</full_name>
+    <email_address>amara.okafor@logistics-intl.org</email_address>
+    <phone_number>+44-20-7946-0888</phone_number>
+    <country>United Kingdom</country>
+  </supplier>
+</suppliers>

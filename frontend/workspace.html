@@ -124,6 +124,11 @@
           </div>
 
           <!-- Primary Actions -->
+          <button class="btn btn-secondary-gold" id="btnOpenUploadModal" title="Upload data file (CSV or SQLite database) for scanning">
+            <span>📁</span>
+            <span>Upload Data</span>
+          </button>
+
           <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
             <span id="scanBtnIcon">▶</span>
             <span id="scanBtnLabel">Run Full Scan</span>
@@ -155,8 +160,143 @@
              ================================================================ -->
         <section class="tab-pane active" id="tab-overview" style="display: block;">
           
-          <!-- Key Performance Indicators (KPIs) -->
-          <div class="kpi-grid">
+          <!-- ================================================================
+               AVAILABLE DATA SOURCES (PREVIEW BEFORE SCAN)
+               ================================================================ -->
+          <section class="available-sources-section" id="availableDataSourcesSection" style="margin-bottom: 2rem;">
+            
+            <!-- Sources Header & Status Pill -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.15rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.25rem;">
+                  <span style="font-size: 1.4rem;">🗂️</span>
+                  <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0;">Available Data Sources</h2>
+                  <span class="badge" style="background: rgba(212, 167, 44, 0.15); color: var(--accent-gold); font-weight: 700;" id="totalSourcesBadge">6 Sources Available</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+                  Discoverable data stores in the backend. Review schemas and row counts below before executing analysis.
+                </p>
+              </div>
+
+              <!-- Scan Workflow Control Pill -->
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="scan-status-pill" id="scanWorkflowStatusPill">
+                  <span class="status-dot pending" id="scanWorkflowDot"></span>
+                  <span id="scanWorkflowStatusText">Pending Scan</span>
+                </div>
+                <button class="btn btn-primary-orange" id="btnRunScanSection" title="Start personal-data discovery scan across all sources">
+                  <span id="scanSectionBtnIcon">▶</span>
+                  <span id="scanSectionBtnLabel">Run Full Scan</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mandatory Guidance Message Banner -->
+            <div class="sources-guidance-banner" id="sourcesGuidanceBanner" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1.2rem; background: rgba(212, 167, 44, 0.08); border: 1px solid rgba(212, 167, 44, 0.25); border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.25rem;">ℹ️</span>
+                <span style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;" id="sourcesGuidanceMessage">
+                  Review your available data sources, then click Run Full Scan to begin analysis.
+                </span>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);" id="sourcesLastScanMeta">No scan run in this session</span>
+            </div>
+
+            <!-- Data Sources Display Grid: Group 1 (CSV Files) & Group 2 (SQL Tables) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 1.5rem;">
+              
+              <!-- Group 1: CSV Files (3 existing files) -->
+              <div class="card" style="margin-bottom: 0;">
+                <div class="card-header" style="padding: 1rem 1.25rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.15rem;">📁</span>
+                    <h3 class="card-title" style="font-size: 0.95rem;">Delimited &amp; Multi-Format Files</h3>
+                    <span class="badge" style="background: rgba(6, 182, 212, 0.12); color: #06B6D4;" id="csvCountBadge">3 Files</span>
+                  </div>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">data/csv &amp; uploads</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                  <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; font-size: 0.78rem;">
+                      <thead>
+                        <tr>
+                          <th>Source / File</th>
+                          <th>Size</th>
+                          <th>Rows</th>
+                          <th>Columns / Schema</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="csvSourcesTableBody">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading CSV sources...</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 2: SQL Tables (3 existing tables) -->
+              <div class="card" style="margin-bottom: 0;">
+                <div class="card-header" style="padding: 1rem 1.25rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.15rem;">🗄️</span>
+                    <h3 class="card-title" style="font-size: 0.95rem;">SQLite Relational Tables</h3>
+                    <span class="badge" style="background: rgba(212, 167, 44, 0.12); color: var(--accent-gold);" id="sqlCountBadge">3 Tables</span>
+                  </div>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">privacy_demo.db</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                  <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; font-size: 0.78rem;">
+                      <thead>
+                        <tr>
+                          <th>Table Name</th>
+                          <th>Database</th>
+                          <th>Rows</th>
+                          <th>Columns / Schema</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="sqlSourcesTableBody">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading SQL tables...</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- Divider between Source Preview and Scan Results -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.15rem;">📊</span>
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0;">Discovery &amp; Evidence Scan Results</h3>
+              <span class="badge" id="scanResultsStateBadge" style="background: var(--bg-elevated); color: var(--text-muted); font-size: 0.72rem;">Pending Scan</span>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);" id="scanResultsTimestamp">Results will appear after clicking Run Full Scan</div>
+          </div>
+
+          <!-- Empty State (Shown before first scan in current session) -->
+          <div class="card card-empty-scan" id="emptyScanStateCard" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3.5rem 1.5rem; background: var(--bg-card); border: 1px dashed var(--border-color); border-radius: var(--radius-lg); margin-bottom: 1.75rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem;">No Scan Results Yet for This Session</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 520px; line-height: 1.5; margin-bottom: 1.5rem;">
+              Review your available data sources above, then click <strong>Run Full Scan</strong> to trigger the automated personal-data detector across all 84 fields and build your evidence inventory.
+            </p>
+            <button class="btn btn-primary-orange" id="btnEmptyRunScan" style="padding: 0.65rem 1.4rem; font-size: 0.9rem;">
+              <span>▶</span>
+              <span>Run Full Scan Now</span>
+            </button>
+          </div>
+
+          <!-- Scan Results Content Container (Hidden until scan is run, then populated) -->
+          <div id="scanResultsContainer" style="display: none;">
+            
+            <!-- Key Performance Indicators (KPIs) -->
+            <div class="kpi-grid">
             <div class="kpi-card gold">
               <div class="kpi-header">
                 <span class="kpi-title">Fields Scanned</span>
@@ -344,6 +484,21 @@
                 </div>
               </a>
 
+              <div class="card card-interactive" id="btnQuickUploadCard" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0; cursor: pointer;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="font-size: 1rem; color: var(--gold-rich); font-weight: 700;">Data File Ingestion</h4>
+                    <span style="font-size: 1.25rem;">📁</span>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
+                    Upload custom CSV spreadsheets or SQLite databases to detect personal-data fields and expand evidence coverage.
+                  </p>
+                </div>
+                <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--gold-rich); display: flex; align-items: center; gap: 0.35rem;">
+                  Upload Dataset <span>↑</span>
+                </div>
+              </div>
+
               <a href="/reports" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
                 <div>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -362,10 +517,132 @@
             </div>
           </div>
 
+          </div> <!-- /scanResultsContainer -->
+
         </section>
 
       </main>
 
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DATA UPLOAD & DATASET MANAGEMENT MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal-content" style="max-width: 680px; width: 92%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">📁</span>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0;">Upload Data Source</h3>
+        </div>
+        <button id="uploadModalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+        <!-- Informational banner -->
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
+          Upload data files to scan for candidate personal-data fields using PrivSight's detection engine. Uploaded datasets are automatically analyzed and included in the unified evidence inventory.
+        </p>
+
+        <!-- Drop Zone -->
+        <div class="upload-drop-zone" id="uploadDropZone">
+          <input type="file" id="fileUploadInput" multiple accept=".csv,.tsv,.tab,.xlsx,.xlsm,.xls,.ods,.pdf,.docx,.pptx,.txt,.rtf,.json,.jsonl,.xml,.yaml,.yml,.ini,.conf,.cfg,.log,.eml,.mbox,.db,.sqlite,.sqlite3" style="display: none;" />
+          <div class="upload-drop-icon">📤</div>
+          <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--text-primary);">
+            Drag &amp; drop data files here, or <span style="color: var(--accent-gold); text-decoration: underline; cursor: pointer;" id="browseFilesLink">browse files</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted);">
+            Supported formats: <strong>PDF, Word, Excel, CSV/TSV, JSON, XML, Logs, YAML, INI, Email, SQLite</strong> (26 formats) · Max: <strong>25 MB / file</strong>
+          </div>
+        </div>
+
+        <!-- Multi-File Queue Card Container -->
+        <div id="uploadQueueContainer" class="upload-queue-container" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+              <span>Selected Files</span>
+              <span id="uploadQueueCountBadge" class="badge" style="background: rgba(212, 167, 44, 0.15); color: var(--accent-gold); font-size: 0.68rem;">0 files</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnClearAllQueue" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">Clear All</button>
+          </div>
+          <div id="uploadQueueList" style="max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.45rem;"></div>
+        </div>
+
+        <!-- Single Selected File Preview Card (Fallback compatibility) -->
+        <div class="upload-file-card" id="uploadFileCard" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+            <span class="upload-file-icon" id="uploadFileIcon">📄</span>
+            <div style="min-width: 0; flex: 1;">
+              <div id="uploadFileName" style="font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">filename.csv</div>
+              <div id="uploadFileSize" style="font-size: 0.74rem; color: var(--text-muted);">0 KB</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnRemoveSelectedFile" title="Remove selected file">✕</button>
+        </div>
+
+        <!-- Options: Auto-scan checkbox -->
+        <div style="margin-top: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="chkAutoScan" checked style="accent-color: var(--accent-gold); cursor: pointer;" />
+          <label for="chkAutoScan" style="font-size: 0.82rem; color: var(--text-secondary); cursor: pointer;">
+            Automatically scan candidate fields and synchronize evidence inventory upon upload
+          </label>
+        </div>
+
+        <!-- Upload Progress Wrap (Hidden initially) -->
+        <div class="upload-progress-wrap" id="uploadProgressWrap" style="display: none; margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
+            <span id="uploadProgressLabel">Uploading and scanning...</span>
+            <span id="uploadProgressPct" class="font-mono">0%</span>
+          </div>
+          <div class="upload-progress-bg">
+            <div id="uploadProgressBar" class="upload-progress-bar"></div>
+          </div>
+        </div>
+
+        <!-- Feedback Alert Box -->
+        <div id="uploadFeedbackAlert" class="upload-feedback-alert" style="display: none; margin-top: 1rem;"></div>
+
+        <!-- Scan Result Highlights (Hidden initially) -->
+        <div id="uploadScanSummary" style="display: none; margin-top: 1rem; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.4rem;">Detection Pipeline Summary</h4>
+          <div id="uploadScanSummaryText" style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4;"></div>
+          <div id="uploadDetectedFieldsList" style="margin-top: 0.65rem; display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+        </div>
+
+        <!-- Datasets Management Section -->
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin: 0;">Available Data Sources</h4>
+            <span style="font-size: 0.72rem; color: var(--text-muted);" id="datasetsCountLabel">Loading...</span>
+          </div>
+          <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.76rem; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Dataset Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Source</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="uploadedDatasetsTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1rem;">Loading datasets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-secondary" id="uploadModalCloseBtnFooter">Close</button>
+        <button class="btn btn-primary-orange" id="btnSubmitUpload" disabled>
+          <span>⬆</span>
+          <span>Upload &amp; Process</span>
+        </button>
+      </div>
     </div>
   </div>
 

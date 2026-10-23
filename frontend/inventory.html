@@ -124,6 +124,11 @@
           </div>
 
           <!-- Primary Actions -->
+          <button class="btn btn-secondary-gold" id="btnOpenUploadModal" title="Upload data file (CSV or SQLite database) for scanning">
+            <span>📁</span>
+            <span>Upload Data</span>
+          </button>
+
           <button class="btn btn-primary-orange" id="btnRunScan" title="Run discovery scan across CSVs and SQLite database">
             <span id="scanBtnIcon">▶</span>
             <span id="scanBtnLabel">Run Full Scan</span>
@@ -223,6 +228,126 @@
 
       </main>
 
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DATA UPLOAD & DATASET MANAGEMENT MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal-content" style="max-width: 680px; width: 92%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">📁</span>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0;">Upload Data Source</h3>
+        </div>
+        <button id="uploadModalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: 75vh; overflow-y: auto;">
+        <!-- Informational banner -->
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
+          Upload data files to scan for candidate personal-data fields using PrivSight's detection engine. Uploaded datasets are automatically analyzed and included in the unified evidence inventory.
+        </p>
+
+        <!-- Drop Zone -->
+        <div class="upload-drop-zone" id="uploadDropZone">
+          <input type="file" id="fileUploadInput" multiple accept=".csv,.tsv,.tab,.xlsx,.xlsm,.xls,.ods,.pdf,.docx,.pptx,.txt,.rtf,.json,.jsonl,.xml,.yaml,.yml,.ini,.conf,.cfg,.log,.eml,.mbox,.db,.sqlite,.sqlite3" style="display: none;" />
+          <div class="upload-drop-icon">📤</div>
+          <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--text-primary);">
+            Drag &amp; drop data files here, or <span style="color: var(--accent-gold); text-decoration: underline; cursor: pointer;" id="browseFilesLink">browse files</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted);">
+            Supported formats: <strong>PDF, Word, Excel, CSV/TSV, JSON, XML, Logs, YAML, INI, Email, SQLite</strong> (26 formats) · Max: <strong>25 MB / file</strong>
+          </div>
+        </div>
+
+        <!-- Multi-File Queue Card Container -->
+        <div id="uploadQueueContainer" class="upload-queue-container" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+              <span>Selected Files</span>
+              <span id="uploadQueueCountBadge" class="badge" style="background: rgba(212, 167, 44, 0.15); color: var(--accent-gold); font-size: 0.68rem;">0 files</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnClearAllQueue" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">Clear All</button>
+          </div>
+          <div id="uploadQueueList" style="max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.45rem;"></div>
+        </div>
+
+        <!-- Single Selected File Preview Card (Fallback compatibility) -->
+        <div class="upload-file-card" id="uploadFileCard" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+            <span class="upload-file-icon" id="uploadFileIcon">📄</span>
+            <div style="min-width: 0; flex: 1;">
+              <div id="uploadFileName" style="font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">filename.csv</div>
+              <div id="uploadFileSize" style="font-size: 0.74rem; color: var(--text-muted);">0 KB</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnRemoveSelectedFile" title="Remove selected file">✕</button>
+        </div>
+
+        <!-- Options: Auto-scan checkbox -->
+        <div style="margin-top: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="chkAutoScan" checked style="accent-color: var(--accent-gold); cursor: pointer;" />
+          <label for="chkAutoScan" style="font-size: 0.82rem; color: var(--text-secondary); cursor: pointer;">
+            Automatically scan candidate fields and synchronize evidence inventory upon upload
+          </label>
+        </div>
+
+        <!-- Upload Progress Wrap (Hidden initially) -->
+        <div class="upload-progress-wrap" id="uploadProgressWrap" style="display: none; margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.35rem; color: var(--text-secondary);">
+            <span id="uploadProgressLabel">Uploading and scanning...</span>
+            <span id="uploadProgressPct" class="font-mono">0%</span>
+          </div>
+          <div class="upload-progress-bg">
+            <div id="uploadProgressBar" class="upload-progress-bar"></div>
+          </div>
+        </div>
+
+        <!-- Feedback Alert Box -->
+        <div id="uploadFeedbackAlert" class="upload-feedback-alert" style="display: none; margin-top: 1rem;"></div>
+
+        <!-- Scan Result Highlights (Hidden initially) -->
+        <div id="uploadScanSummary" style="display: none; margin-top: 1rem; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.4rem;">Detection Pipeline Summary</h4>
+          <div id="uploadScanSummaryText" style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4;"></div>
+          <div id="uploadDetectedFieldsList" style="margin-top: 0.65rem; display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+        </div>
+
+        <!-- Datasets Management Section -->
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin: 0;">Available Data Sources</h4>
+            <span style="font-size: 0.72rem; color: var(--text-muted);" id="datasetsCountLabel">Loading...</span>
+          </div>
+          <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+            <table class="data-table" style="font-size: 0.76rem; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Dataset Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Source</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="uploadedDatasetsTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1rem;">Loading datasets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-secondary" id="uploadModalCloseBtnFooter">Close</button>
+        <button class="btn btn-primary-orange" id="btnSubmitUpload" disabled>
+          <span>⬆</span>
+          <span>Upload &amp; Process</span>
+        </button>
+      </div>
     </div>
   </div>
 

@@ -1,0 +1,13 @@
+customer_id,full_name,email,phone,date_of_birth,city,country,account_status,signup_timestamp,newsletter_subscribed
+CUST-QA-1001,Eleanor Vance,eleanor.vance@example.com,+1-555-0101,1988-04-12,Seattle,United States,Active,2024-01-10T10:15:00,True
+CUST-QA-1002,Marcus Brody,marcus.brody@example.com,+1-555-0102,1975-11-23,Boston,United States,Active,2024-01-12T14:22:30,False
+CUST-QA-1003,Amina Al-Mansoor,amina.almansoor@example.com,+1-555-0103,1993-02-08,Austin,United States,Active,2024-01-15T09:05:10,True
+CUST-QA-1004,Liam O'Connor,liam.oconnor@example.com,+1-555-0104,1982-08-30,Chicago,United States,Suspended,2024-01-18T18:40:00,False
+CUST-QA-1005,Sofia Rossi,sofia.rossi@example.com,+1-555-0105,1996-12-14,Miami,United States,Active,2024-01-20T11:55:00,True
+CUST-QA-1006,David Chen,david.chen@example.com,+1-555-0106,1985-06-19,Denver,United States,Active,2024-01-22T16:10:45,False
+CUST-QA-1007,Fatima Zahra,fatima.zahra@example.com,+1-555-0107,1991-09-03,Atlanta,United States,Pending,2024-01-25T13:30:20,True
+CUST-QA-1008,Lucas Lindqvist,lucas.lindqvist@example.com,+1-555-0108,1979-03-27,Portland,United States,Active,2024-01-28T08:45:00,False
+CUST-QA-1009,Priya Sharma,priya.sharma@example.com,+1-555-0109,1994-07-11,San Jose,United States,Active,2024-02-01T15:20:10,True
+CUST-QA-1010,Alexander Wright,alexander.wright@example.com,+1-555-0110,1987-10-05,Phoenix,United States,Active,2024-02-03T12:00:00,False
+CUST-QA-1011,Elena Rostova,elena.rostova@example.com,+1-555-0111,1998-01-17,Dallas,United States,Active,2024-02-05T17:15:35,True
+CUST-QA-1012,Tariq Hamilton,tariq.hamilton@example.com,+1-555-0112,1983-05-29,Philadelphia,United States,Closed,2024-02-08T19:05:00,False

@@ -1,0 +1,13 @@
+employee_id,employee_name,work_email,mobile_number,department,salary,job_title,office_badge_id,employment_type
+EMP-QA-501,Julian Reynolds,julian.reynolds@example.com,+1-555-0201,Engineering,115000.00,Senior Backend Engineer,BDG-9011,Full-Time
+EMP-QA-502,Kavita Nambiar,kavita.nambiar@example.com,+1-555-0202,Product,98000.00,Product Manager,BDG-9012,Full-Time
+EMP-QA-503,Samuel Green,samuel.green@example.com,+1-555-0203,Human Resources,74000.00,HR Generalist,BDG-9013,Full-Time
+EMP-QA-504,Nadia Petrov,nadia.petrov@example.com,+1-555-0204,Finance,89000.00,Senior Financial Analyst,BDG-9014,Full-Time
+EMP-QA-505,Carlos Gomez,carlos.gomez@example.com,+1-555-0205,Operations,62000.00,Logistics Coordinator,BDG-9015,Full-Time
+EMP-QA-506,Mei-Ling Zhou,meiling.zhou@example.com,+1-555-0206,Design,86000.00,Lead UX Designer,BDG-9016,Full-Time
+EMP-QA-507,Daniel Vance,daniel.vance@example.com,+1-555-0207,Legal & Compliance,128000.00,Compliance Counsel,BDG-9017,Full-Time
+EMP-QA-508,Tara Connelly,tara.connelly@example.com,+1-555-0208,Customer Support,54000.00,Tier 2 Support Specialist,BDG-9018,Full-Time
+EMP-QA-509,Omar Farooq,omar.farooq@example.com,+1-555-0209,Engineering,102000.00,DevOps Specialist,BDG-9019,Full-Time
+EMP-QA-510,Grace Hopper-Kim,grace.kim@example.com,+1-555-0210,Data Science,120000.00,ML Engineer,BDG-9020,Full-Time
+EMP-QA-511,Ethan Miller,ethan.miller@example.com,+1-555-0211,Marketing,71000.00,Content Strategist,BDG-9021,Contract
+EMP-QA-512,Zara Sutherland,zara.sutherland@example.com,+1-555-0212,Engineering,95000.00,QA Automation Engineer,BDG-9022,Full-Time

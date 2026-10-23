@@ -1,0 +1,6 @@
+Patient Name: Dr. Arthur Pendelton
+Date of Birth: 1980-05-14
+Contact Phone: +1-555-342-1100
+Email Address: arthur.pendelton@medicare-sample.org
+Residential Address: 42 Elm Street, Apt 3B, Boston, MA 02108
+Medical Notes: Routine checkup. Patient reported normal health insurance status.
