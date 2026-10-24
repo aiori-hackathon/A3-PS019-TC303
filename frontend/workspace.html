@@ -62,7 +62,7 @@
 
         <a href="/evidence-gaps" class="nav-item" id="navGaps">
           <span class="nav-item-icon">⚠️</span>
-          <span class="nav-item-label">Evidence Gaps</span>
+          <span class="nav-item-label">Missing Proof</span>
           <span class="nav-badge" id="sidebarGapsBadge">--</span>
         </a>
 
@@ -299,7 +299,7 @@
             <div class="kpi-grid">
             <div class="kpi-card gold">
               <div class="kpi-header">
-                <span class="kpi-title">Fields Scanned</span>
+                <span class="kpi-title">Data Fields Checked</span>
                 <span class="kpi-icon-badge">🔍</span>
               </div>
               <div class="kpi-value font-mono" id="statScannedFields">--</div>
@@ -308,7 +308,7 @@
 
             <div class="kpi-card orange">
               <div class="kpi-header">
-                <span class="kpi-title">PII Candidates</span>
+                <span class="kpi-title">Personal Data Found</span>
                 <span class="kpi-icon-badge">🛡️</span>
               </div>
               <div class="kpi-value font-mono" id="statCandidates">--</div>
@@ -317,7 +317,7 @@
 
             <div class="kpi-card emerald">
               <div class="kpi-header">
-                <span class="kpi-title">Complete Metadata</span>
+                <span class="kpi-title">Metadata Completed</span>
                 <span class="kpi-icon-badge">✔</span>
               </div>
               <div class="kpi-value font-mono" id="statComplete">--</div>
@@ -326,7 +326,7 @@
 
             <div class="kpi-card amber">
               <div class="kpi-header">
-                <span class="kpi-title">Evidence Gaps</span>
+                <span class="kpi-title">Missing Proof</span>
                 <span class="kpi-icon-badge">⚠️</span>
               </div>
               <div class="kpi-value font-mono" id="statGaps">--</div>
@@ -346,10 +346,10 @@
           <!-- Visual Insights Row -->
           <div class="overview-grid">
             
-            <!-- Card 1: Evidence Gaps Distribution -->
+            <!-- Card 1: Missing Proof Distribution -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Evidence Gaps by Category</h3>
+                <h3 class="card-title">Missing Proof by Category</h3>
                 <span class="badge badge-class-identity" id="overviewGapsTotalBadge">-- Gaps</span>
               </div>
               <div class="card-body">
@@ -359,10 +359,10 @@
               </div>
             </div>
 
-            <!-- Card 2: PII Candidates by Technical Class -->
+            <!-- Card 2: Personal Data Found by Technical Class -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Candidates by Data Class</h3>
+                <h3 class="card-title">Personal Data Found by Class</h3>
                 <span class="badge badge-class-contact">5 Classes</span>
               </div>
               <div class="card-body">
@@ -407,8 +407,8 @@
                     <div class="progress-fill gold" id="ovCompletenessBar" style="width: 0%;"></div>
                   </div>
                   <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
-                    <span id="ovCompleteSub">-- Complete</span>
-                    <span id="ovGapsSub">-- Evidence Gaps</span>
+                    <span id="ovCompleteSub">-- Completed</span>
+                    <span id="ovGapsSub">-- Missing Proof</span>
                   </div>
                 </div>
               </div>
@@ -457,7 +457,7 @@
               <a href="/evidence-gaps" class="card card-interactive" style="text-decoration: none; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
                 <div>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h4 style="font-size: 1rem; color: var(--orange-primary); font-weight: 700;">Evidence Gaps</h4>
+                    <h4 style="font-size: 1rem; color: var(--orange-primary); font-weight: 700;">Missing Proof</h4>
                     <span style="font-size: 1.25rem;">⚠️</span>
                   </div>
                   <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0;">
@@ -465,7 +465,7 @@
                   </p>
                 </div>
                 <div style="margin-top: 1.2rem; font-size: 0.82rem; font-weight: 700; color: var(--orange-primary); display: flex; align-items: center; gap: 0.35rem;">
-                  Review Gaps <span>→</span>
+                  Review Missing Proof <span>→</span>
                 </div>
               </a>
 

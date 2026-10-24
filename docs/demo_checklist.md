@@ -27,6 +27,7 @@ Use this quick-reference step-by-step checklist to ensure a smooth, error-free p
 ### Step 1: Overview & Available Data Sources
 - [ ] Point out the **Header Title**: *Personal-Data Discovery & Evidence Inventory (PS-019 · TC-303)*.
 - [ ] Point out the **Technical Evidence Scope Banner** (No legal compliance decisions).
+- [ ] Note key metric cards: **Data Fields Checked**, **Personal Data Found**, **Metadata Completed**, and **Missing Proof**.
 - [ ] Review the **Available Data Sources** grid:
   - Default CSV files (`customers.csv`, `employees.csv`, `transactions.csv`) and SQLite tables.
   - Notice status sorting (Available sources appear at top) and format badge pills (`CSV`, `SQLITE`).
@@ -55,10 +56,10 @@ Use this quick-reference step-by-step checklist to ensure a smooth, error-free p
 - [ ] Demonstrate preserved source filenames and structured field paths (e.g., `Payroll!tax_id`, `audit.details.national_id`).
 - [ ] Click the **Details** button on any record to inspect detected class, confidence score, declared purpose, retention period, and governance status.
 
-### Step 5: Evidence Gaps Tab
-- [ ] Click **Evidence Gaps** tab.
+### Step 5: Missing Proof Tab (Evidence Gaps)
+- [ ] Click **Missing Proof** tab.
 - [ ] Filter by **Retention Missing** or **Not Mapped** to show technical governance discrepancies requiring human review.
-- [ ] Explain that gaps are technical discrepancies for governance auditing, not legal conclusions.
+- [ ] Explain that missing proof indicates technical discrepancies for governance auditing, not legal conclusions.
 
 ### Step 6: Ground-Truth Evaluation Tab
 - [ ] Click **Ground-Truth Evaluation** tab.
@@ -78,3 +79,4 @@ Use this quick-reference step-by-step checklist to ensure a smooth, error-free p
 - **Browser can't connect?** Confirm Uvicorn is running on port 8000 and terminal hasn't paused (press `Enter` in PowerShell if selection mode is paused).
 - **Reports missing?** Click **Run Pipeline** in the top navigation bar to regenerate all reports immediately.
 
+ 

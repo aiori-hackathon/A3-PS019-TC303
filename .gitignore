@@ -80,10 +80,12 @@ reports/*.html
 reports/*.pdf
 
 # ──────────────────────────────────────────────
-# User Uploads
+# User Uploads & Local CSV Data
 # ──────────────────────────────────────────────
 data/uploads/*
 !data/uploads/.gitkeep
+data/csv/*.csv
+!data/csv/.gitkeep
 
 # ──────────────────────────────────────────────
 # IDE & Editor Files

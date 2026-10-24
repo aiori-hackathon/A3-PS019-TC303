@@ -260,7 +260,7 @@ function initSidebar() {
 const TAB_TITLES = {
   'tab-overview': 'Overview',
   'tab-inventory': 'Personal-Data Inventory',
-  'tab-gaps': 'Evidence Gaps',
+  'tab-gaps': 'Missing Proof',
   'tab-evaluation': 'Ground-Truth Evaluation',
   'tab-rules': 'Detection Rules',
   'tab-reports': 'Reports & Downloads',
@@ -438,8 +438,8 @@ async function fetchSummary() {
     const compPct = totalConsidered > 0 ? Math.round((complete / totalConsidered) * 100) : 0;
     if (elements.ovCompletenessPercent) elements.ovCompletenessPercent.textContent = `${compPct}%`;
     if (elements.ovCompletenessBar) elements.ovCompletenessBar.style.width = `${compPct}%`;
-    if (elements.ovCompleteSub) elements.ovCompleteSub.textContent = `${complete} Complete`;
-    if (elements.ovGapsSub) elements.ovGapsSub.textContent = `${gaps} Evidence Gaps`;
+    if (elements.ovCompleteSub) elements.ovCompleteSub.textContent = `${complete} Completed`;
+    if (elements.ovGapsSub) elements.ovGapsSub.textContent = `${gaps} Missing Proof`;
 
     // Snapshot evaluation
     if (data.evaluation) {
@@ -763,11 +763,11 @@ function renderGaps() {
 
   const totalItems = filtered.length;
   if (elements.gapsCounter) {
-    elements.gapsCounter.textContent = `${totalItems} evidence gaps`;
+    elements.gapsCounter.textContent = `${totalItems} missing proof records`;
   }
 
   if (totalItems === 0) {
-    elements.gapsTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2.5rem;">No matching evidence gaps found.</td></tr>`;
+    elements.gapsTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2.5rem;">No matching missing proof records found.</td></tr>`;
     if (elements.gapsPagination) elements.gapsPagination.innerHTML = '';
     return;
   }
@@ -1917,8 +1917,8 @@ async function handleRunScan() {
       elements.scanResultsTimestamp.textContent = `Last scanned at ${timeStr} (${data.scanned_fields_count} fields analyzed)`;
     }
 
-    updateScanWorkflowStatus('completed', `Scan completed successfully: ${data.detected_candidates_count} candidates found across ${data.scanned_fields_count} fields.`, `Completed at ${timeStr}`);
-    showToast(`Scan complete: ${data.detected_candidates_count} candidates discovered across ${data.scanned_fields_count} fields.`, 'success');
+    updateScanWorkflowStatus('completed', `Scan completed successfully: ${data.detected_candidates_count} personal data found across ${data.scanned_fields_count} data fields checked.`, `Completed at ${timeStr}`);
+    showToast(`Scan complete: ${data.detected_candidates_count} personal data found across ${data.scanned_fields_count} data fields checked.`, 'success');
 
     // Refresh all dependent data (KPIs, inventory, gaps, evaluation)
     await refreshAll();
@@ -1990,8 +1990,8 @@ async function handleRunAnalyze() {
       elements.scanResultsTimestamp.textContent = `Pipeline executed at ${timeStr} (${data.inventory_count} inventory records, ${data.total_gaps_count} gaps)`;
     }
 
-    updateScanWorkflowStatus('completed', `Pipeline complete: ${data.inventory_count} inventory records, ${data.total_gaps_count} evidence gaps evaluated.`, `Completed at ${timeStr}`);
-    showToast(`Pipeline complete: ${data.inventory_count} inventory records, ${data.total_gaps_count} evidence gaps evaluated.`, 'success');
+    updateScanWorkflowStatus('completed', `Pipeline complete: ${data.inventory_count} inventory records, ${data.total_gaps_count} missing proof evaluated.`, `Completed at ${timeStr}`);
+    showToast(`Pipeline complete: ${data.inventory_count} inventory records, ${data.total_gaps_count} missing proof evaluated.`, 'success');
 
     // Refresh all dependent data (KPIs, inventory, gaps, evaluation)
     await refreshAll();
@@ -2148,7 +2148,7 @@ function initEvents() {
       if (elements.gapsStatusFilter) elements.gapsStatusFilter.value = 'All';
       if (elements.gapsClassFilter) elements.gapsClassFilter.value = 'All';
       renderGaps();
-      showToast('Evidence gaps filters reset', 'info');
+      showToast('Missing proof filters reset', 'info');
     });
   }
 }
