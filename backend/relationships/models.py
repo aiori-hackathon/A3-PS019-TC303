@@ -101,6 +101,8 @@ class RelationshipReport(BaseModel):
     summary: Dict[str, Any] = Field(default_factory=dict)
     warnings: List[str] = Field(default_factory=list)
     evidence_sources: List[str] = Field(default_factory=list)
+    conversation_id: Optional[str] = None
+    message_id: Optional[str] = None
 
 
 # --- Chat & Conversation Persistence Models ---

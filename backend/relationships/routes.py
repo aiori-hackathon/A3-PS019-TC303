@@ -175,7 +175,7 @@ def chat_with_assistant(
     )
 
     # Save assistant response
-    chat_service.add_message(
+    asst_msg = chat_service.add_message(
         conv_id=conv_id,
         user_id=user.id,
         role="assistant",
@@ -188,5 +188,8 @@ def chat_with_assistant(
         flowchart_data=report.flowchart_data,
         sources_used=report.evidence_sources,
     )
+
+    report.conversation_id = conv_id
+    report.message_id = asst_msg.id
 
     return report

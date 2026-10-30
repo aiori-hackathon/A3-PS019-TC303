@@ -4,32 +4,1016 @@
  * Dedicated client-side controller for TRACERA — BY PRIVSIGHT.
  * "Trace. Analyze. Understand."
  * 
- * Features:
- * - ChatGPT-style conversational experience integrated directly into PrivSight
- * - Persistent conversation threads & multi-turn history
- * - Interactive Cytoscape.js graph rendering with pan/zoom/fit & inspector
- * - Structured tables, timelines, flowcharts, and markdown rendering
- * - Dynamic format preference switcher
- * - Per-user data isolation and evidence provenance display
+ * Component Architecture:
+ * - WelcomeScreen: Handles initial greeting, branding, and suggested prompts
+ * - UserMessage: Clean right-aligned user bubble component
+ * - AssistantMessage: Clean left-aligned assistant component with Markdown typography
+ * - ChatMessageList: Manages message stream, deduplication, and scrolling
+ * - MessageComposer: Handles auto-expanding textarea, Enter key, and submit state
  */
 
+// Global State
 let currentConversationId = null;
 let currentFormatPreference = 'text';
 let availableSources = [];
 let selectedSources = [];
 let allConversations = [];
 let activeCytoscapeInstances = {};
+let isSubmitting = false;
+let lastUserMessage = '';
 
+// ==========================================
+// 1. WELCOME SCREEN COMPONENT
+// ==========================================
+const WelcomeScreen = {
+  render() {
+    return `
+      <div class="tracera-welcome-card" id="welcomeHero">
+        <div class="tracera-welcome-icon">⚡</div>
+        <h1 class="tracera-welcome-title">TRACERA</h1>
+        <div class="tracera-welcome-tagline">Trace. Analyze. Understand.</div>
+        <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+          BY PRIVSIGHT · AI-Powered Relationship Intelligence Assistant
+        </div>
+        <p class="tracera-welcome-desc">
+          Welcome to TRACERA. I am your specialized AI assistant inside PrivSight, ready to answer questions regarding your personal-data discovery inventory, evidence gap analysis, detection rules, and privacy compliance.
+        </p>
+
+        <div class="tracera-prompts-grid">
+          <div class="tracera-prompt-card" onclick="suggestPrompt('What is PrivSight\\'s methodology for personal data discovery and evidence inventory?')">
+            <div class="tracera-prompt-icon">🔍</div>
+            <div class="tracera-prompt-title">Discovery Methodology</div>
+            <div class="tracera-prompt-sub">Learn how PrivSight discovers and categorizes personal data across your files and databases.</div>
+          </div>
+
+          <div class="tracera-prompt-card" onclick="suggestPrompt('How are confidence scores and Missing Proofs calculated in the inventory?')">
+            <div class="tracera-prompt-icon">⚠️</div>
+            <div class="tracera-prompt-title">Missing Proofs & Gaps</div>
+            <div class="tracera-prompt-sub">Understand how technical evidence verification separates confirmed facts from missing proofs.</div>
+          </div>
+
+          <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the difference between direct personal identifiers and quasi-identifiers under GDPR.')">
+            <div class="tracera-prompt-icon">🛡️</div>
+            <div class="tracera-prompt-title">Direct vs Quasi-Identifiers</div>
+            <div class="tracera-prompt-sub">Review compliance distinctions and privacy risk implications for sensitive data fields.</div>
+          </div>
+
+          <div class="tracera-prompt-card" onclick="suggestPrompt('How do detection rules scan database columns, CSVs, and unstructured files?')">
+            <div class="tracera-prompt-icon">⚙️</div>
+            <div class="tracera-prompt-title">Detection Rule Mechanics</div>
+            <div class="tracera-prompt-sub">Explore how regex, entropy, and NLP heuristics evaluate PII candidate likelihood.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  show() {
+    const container = ChatMessageList.getContainer();
+    if (!container) return;
+    ChatMessageList.clear();
+    container.innerHTML = this.render();
+  },
+
+  hide() {
+    const hero = document.getElementById('welcomeHero');
+    if (hero) hero.remove();
+  },
+
+  isVisible() {
+    return !!document.getElementById('welcomeHero');
+  }
+};
+
+// ==========================================
+// 2. USER MESSAGE COMPONENT (Strict Right Alignment)
+// ==========================================
+const UserMessage = {
+  create(id, content, timestamp) {
+    const row = document.createElement('div');
+    row.className = 'tracera-message-row user';
+    row.id = `msg-${id}`;
+    row.setAttribute('data-role', 'user');
+
+    const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const bubble = document.createElement('div');
+    bubble.className = 'tracera-user-bubble';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'tracera-user-text';
+    textEl.textContent = content || '';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'tracera-user-time';
+    timeEl.textContent = timeStr;
+
+    bubble.appendChild(textEl);
+    bubble.appendChild(timeEl);
+    row.appendChild(bubble);
+
+    return row;
+  }
+};
+
+// ==========================================
+// 3. ASSISTANT MESSAGE COMPONENT (Strict Left Alignment)
+// ==========================================
+const AssistantMessage = {
+  create(id, content, metadata = {}) {
+    const row = document.createElement('div');
+    row.className = 'tracera-message-row assistant';
+    row.id = `msg-${id}`;
+    row.setAttribute('data-role', 'assistant');
+
+    const timeStr = metadata.timestamp ? new Date(metadata.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Assistant Header (Avatar + Brand + Tagline + Timestamp)
+    const header = document.createElement('div');
+    header.className = 'tracera-assistant-header';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'tracera-assistant-avatar';
+    avatar.textContent = '⚡';
+
+    const brand = document.createElement('div');
+    brand.className = 'tracera-assistant-brand';
+    brand.innerHTML = `
+      <span class="tracera-assistant-name">TRACERA</span>
+      <span class="tracera-assistant-badge">BY PRIVSIGHT</span>
+      <span class="tracera-assistant-time">${timeStr}</span>
+    `;
+
+    header.appendChild(avatar);
+    header.appendChild(brand);
+    row.appendChild(header);
+
+    // Assistant Response Body Card
+    const bodyCard = document.createElement('div');
+    bodyCard.className = 'tracera-assistant-body';
+
+    // 1. Interactive Cytoscape Graph (if available)
+    if (metadata.graph && metadata.graph.nodes && metadata.graph.nodes.length > 0) {
+      const graphId = 'cy-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const graphWrapper = document.createElement('div');
+      graphWrapper.className = 'tracera-graph-container';
+      graphWrapper.id = graphId;
+
+      graphWrapper.innerHTML = `
+        <div class="tracera-graph-toolbar">
+          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 1.25)" title="Zoom in">➕</button>
+          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 0.8)" title="Zoom out">➖</button>
+          <button class="tracera-graph-btn" onclick="fitGraph('${graphId}')" title="Fit to view">🎯 Fit</button>
+        </div>
+      `;
+      bodyCard.appendChild(graphWrapper);
+
+      requestAnimationFrame(() => {
+        initCytoscapeGraph(graphId, metadata.graph);
+      });
+    }
+
+    // 2. Structured Table (if available)
+    if (metadata.table_data && Array.isArray(metadata.table_data) && metadata.table_data.length > 0) {
+      const tableWrapper = document.createElement('div');
+      tableWrapper.className = 'tracera-table-wrapper';
+
+      const cols = Object.keys(metadata.table_data[0]);
+      let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
+      cols.forEach(c => {
+        const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
+        tableHtml += `<th style="padding:0.6rem 0.75rem; text-align:left;">${escapeHtml(formattedTitle)}</th>`;
+      });
+      tableHtml += '</tr></thead><tbody>';
+
+      metadata.table_data.forEach(rowItem => {
+        tableHtml += '<tr>';
+        cols.forEach(c => {
+          let val = rowItem[c];
+          if (val === null || val === undefined) val = '-';
+          if (c.includes('status')) {
+            val = `<span class="badge badge-status-complete">${escapeHtml(String(val))}</span>`;
+          } else if (c.includes('cardinality')) {
+            val = `<span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
+          } else {
+            val = escapeHtml(String(val));
+          }
+          tableHtml += `<td style="padding:0.5rem 0.75rem; border-top:1px solid var(--border-color);">${val}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+
+      tableWrapper.innerHTML = tableHtml;
+      bodyCard.appendChild(tableWrapper);
+    }
+
+    // 3. Timeline Cards (if available)
+    if (metadata.timeline_data && Array.isArray(metadata.timeline_data) && metadata.timeline_data.length > 0) {
+      const timelineWrapper = document.createElement('div');
+      timelineWrapper.style.margin = '0.85rem 0';
+      timelineWrapper.style.display = 'flex';
+      timelineWrapper.style.flexDirection = 'column';
+      timelineWrapper.style.gap = '0.6rem';
+
+      metadata.timeline_data.forEach(ev => {
+        const card = document.createElement('div');
+        card.style.background = 'var(--bg-elevated)';
+        card.style.border = '1px solid var(--border-color)';
+        card.style.borderRadius = 'var(--radius-sm)';
+        card.style.padding = '0.65rem 0.9rem';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+
+        card.innerHTML = `
+          <div>
+            <div style="font-weight:700; font-size:0.82rem; color:var(--text-primary); margin-bottom:0.15rem;">
+              ${escapeHtml(ev.entity || 'Event')}
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(ev.description || '')}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">
+              ${escapeHtml(ev.date || '')}
+            </span>
+          </div>
+        `;
+        timelineWrapper.appendChild(card);
+      });
+      bodyCard.appendChild(timelineWrapper);
+    }
+
+    // 4. Formatted Markdown Analytical Content
+    const mdContainer = document.createElement('div');
+    mdContainer.className = 'tracera-markdown-content';
+    mdContainer.innerHTML = renderMarkdown(content || '');
+    bodyCard.appendChild(mdContainer);
+
+    // 5. Provenance & Action Footer
+    const footer = document.createElement('div');
+    footer.className = 'tracera-response-footer';
+
+    const badges = document.createElement('div');
+    badges.className = 'tracera-response-badges';
+    badges.innerHTML = `
+      <span class="badge badge-status-complete" style="font-size:0.68rem; font-weight:700;">✔ Verified Schema Engine</span>
+      <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); font-size:0.68rem;">🔒 PII Masked</span>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'tracera-response-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'tracera-action-btn';
+    copyBtn.style.fontSize = '0.72rem';
+    copyBtn.innerHTML = '📋 Copy';
+    copyBtn.title = 'Copy response text';
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(content || '');
+      copyBtn.innerHTML = '✔ Copied!';
+      setTimeout(() => { copyBtn.innerHTML = '📋 Copy'; }, 2000);
+    };
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'tracera-action-btn';
+    retryBtn.style.fontSize = '0.72rem';
+    retryBtn.innerHTML = '🔄 Retry';
+    retryBtn.title = 'Retry last question';
+    retryBtn.onclick = () => {
+      if (lastUserMessage) {
+        suggestPrompt(lastUserMessage);
+      }
+    };
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(retryBtn);
+
+    footer.appendChild(badges);
+    footer.appendChild(actions);
+    bodyCard.appendChild(footer);
+
+    row.appendChild(bodyCard);
+    return row;
+  }
+};
+
+// ==========================================
+// 4. CHAT MESSAGE LIST COMPONENT (Manages Deduplication & Stream)
+// ==========================================
+const ChatMessageList = {
+  renderedMessageIds: new Set(),
+
+  getContainer() {
+    return document.getElementById('messagesInner') || document.getElementById('chatMessages');
+  },
+
+  clear() {
+    const container = this.getContainer();
+    if (container) container.innerHTML = '';
+    this.renderedMessageIds.clear();
+  },
+
+  addUserMessage(id, content, timestamp) {
+    if (this.renderedMessageIds.has(id)) {
+      console.warn(`Duplicate user message ID skipped: ${id}`);
+      return;
+    }
+    this.renderedMessageIds.add(id);
+
+    WelcomeScreen.hide();
+
+    const container = this.getContainer();
+    if (!container) return;
+
+    const msgEl = UserMessage.create(id, content, timestamp);
+    container.appendChild(msgEl);
+    this.scrollToBottom();
+  },
+
+  addAssistantMessage(id, content, metadata = {}) {
+    if (this.renderedMessageIds.has(id)) {
+      console.warn(`Duplicate assistant message ID skipped: ${id}`);
+      return;
+    }
+    this.renderedMessageIds.add(id);
+
+    WelcomeScreen.hide();
+
+    const container = this.getContainer();
+    if (!container) return;
+
+    const msgEl = AssistantMessage.create(id, content, metadata);
+    container.appendChild(msgEl);
+    this.scrollToBottom();
+  },
+
+  showLoading(loadingId) {
+    const container = this.getContainer();
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'tracera-message-row assistant';
+    row.id = loadingId;
+
+    row.innerHTML = `
+      <div class="tracera-assistant-header">
+        <div class="tracera-assistant-avatar">⚡</div>
+        <div class="tracera-assistant-brand">
+          <span class="tracera-assistant-name">TRACERA</span>
+          <span class="tracera-assistant-badge">ANALYZING</span>
+        </div>
+      </div>
+      <div class="tracera-assistant-body" style="padding: 1rem 1.25rem;">
+        <div style="display:flex; align-items:center; gap:0.65rem; color:var(--text-secondary); font-size:0.85rem;">
+          <span class="status-pulse-dot" style="background:var(--accent-gold);"></span>
+          <span>TRACERA is tracing entity linkages, verifying relational paths, and analyzing evidence...</span>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(row);
+    this.scrollToBottom();
+  },
+
+  hideLoading(loadingId) {
+    const el = document.getElementById(loadingId);
+    if (el) el.remove();
+  },
+
+  showError(errorText, failedQuery) {
+    const container = this.getContainer();
+    if (!container) return;
+
+    const errorId = 'err-' + Date.now();
+    const row = document.createElement('div');
+    row.className = 'tracera-message-row assistant';
+    row.id = errorId;
+
+    row.innerHTML = `
+      <div class="tracera-assistant-header">
+        <div class="tracera-assistant-avatar" style="background:var(--color-danger);">⚠️</div>
+        <div class="tracera-assistant-brand">
+          <span class="tracera-assistant-name" style="color:var(--color-danger);">TRACERA Alert</span>
+          <span class="tracera-assistant-badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger);">ERROR</span>
+        </div>
+      </div>
+      <div class="tracera-assistant-body" style="border-color:var(--color-danger); background:rgba(239, 68, 68, 0.05);">
+        <p style="margin-bottom:0.75rem; color:var(--text-primary);">⚠️ <strong>Request Error:</strong> ${escapeHtml(errorText)}</p>
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="tracera-action-btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:0.35rem 0.75rem; border-radius:var(--radius-sm); font-size:0.78rem; cursor:pointer;" onclick="suggestPrompt('${escapeHtml(failedQuery)}')">
+            🔄 Retry Question
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(row);
+    this.scrollToBottom();
+  },
+
+  scrollToBottom() {
+    const scrollContainer = document.getElementById('chatMessages');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    }
+  }
+};
+
+// ==========================================
+// 5. MESSAGE COMPOSER COMPONENT
+// ==========================================
+const MessageComposer = {
+  inputEl: null,
+  sendBtnEl: null,
+
+  init(onSend) {
+    this.inputEl = document.getElementById('chatInput');
+    this.sendBtnEl = document.getElementById('btnSendChat');
+    const newChatBtn = document.getElementById('btnNewChat');
+
+    if (newChatBtn) {
+      newChatBtn.addEventListener('click', createNewConversation);
+    }
+
+    if (!this.inputEl || !this.sendBtnEl) return;
+
+    this.sendBtnEl.disabled = true;
+    this.inputEl.style.height = '110px';
+
+    const updateState = () => {
+      const val = this.inputEl.value.trim();
+      this.sendBtnEl.disabled = isSubmitting || val.length === 0;
+
+      // Auto-expand textarea between 110px and 250px
+      this.inputEl.style.height = 'auto';
+      const targetHeight = Math.max(110, Math.min(this.inputEl.scrollHeight, 250));
+      this.inputEl.style.height = targetHeight + 'px';
+    };
+
+    this.inputEl.addEventListener('input', updateState);
+
+    // Enter sends, Shift+Enter makes newline
+    this.inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!this.sendBtnEl.disabled && !isSubmitting && this.inputEl.value.trim()) {
+          onSend();
+        }
+      }
+    });
+
+    this.sendBtnEl.addEventListener('click', () => {
+      if (!this.sendBtnEl.disabled && !isSubmitting && this.inputEl.value.trim()) {
+        onSend();
+      }
+    });
+  },
+
+  getValue() {
+    return this.inputEl ? this.inputEl.value.trim() : '';
+  },
+
+  clear() {
+    if (this.inputEl) {
+      this.inputEl.value = '';
+      this.inputEl.style.height = '110px';
+    }
+    if (this.sendBtnEl) {
+      this.sendBtnEl.disabled = true;
+    }
+  },
+
+  setDisabled(disabled) {
+    if (this.inputEl) this.inputEl.disabled = disabled;
+    if (this.sendBtnEl) this.sendBtnEl.disabled = disabled;
+  },
+
+  focus() {
+    if (this.inputEl) this.inputEl.focus();
+  }
+};
+
+// ==========================================
+// 6. MAIN CHAT SUBMISSION CONTROLLER
+// ==========================================
+async function sendChatMessage() {
+  if (isSubmitting) return;
+
+  const message = MessageComposer.getValue();
+  if (!message) return;
+
+  lastUserMessage = message;
+  isSubmitting = true;
+
+  // Clear composer & disable send button
+  MessageComposer.clear();
+  MessageComposer.setDisabled(true);
+
+  // Generate unique stable client ID for the user message
+  const userMsgId = 'usr-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+
+  // 1. Add User Message exactly once
+  ChatMessageList.addUserMessage(userMsgId, message, new Date().toISOString());
+
+  // 2. Show Loading Indicator
+  const loadingId = 'loading-' + Date.now();
+  ChatMessageList.showLoading(loadingId);
+
+  try {
+    const payload = {
+      message: message,
+      conversation_id: currentConversationId,
+      selected_sources: selectedSources.length > 0 ? selectedSources : null,
+      format_preference: currentFormatPreference !== 'text' ? currentFormatPreference : null,
+    };
+
+    const res = await fetch('/api/relationships/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    ChatMessageList.hideLoading(loadingId);
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      ChatMessageList.showError(errData.detail || 'Server error occurred.', message);
+      return;
+    }
+
+    const report = await res.json();
+
+    // Lock onto conversation ID returned by backend
+    if (report.conversation_id && report.conversation_id !== currentConversationId) {
+      currentConversationId = report.conversation_id;
+      localStorage.setItem('tracera-active-conv', currentConversationId);
+    }
+
+    // 3. Add Assistant Response exactly once
+    const asstMsgId = report.message_id || ('asst-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6));
+    ChatMessageList.addAssistantMessage(asstMsgId, report.explanation, report);
+
+    // Refresh threads list in background without touching current messages
+    await loadConversations(false);
+
+  } catch (err) {
+    ChatMessageList.hideLoading(loadingId);
+    ChatMessageList.showError(`Network connection failed: ${err.message}`, message);
+  } finally {
+    isSubmitting = false;
+    MessageComposer.setDisabled(false);
+    MessageComposer.focus();
+  }
+}
+
+// ==========================================
+// 7. CONVERSATION MANAGEMENT & PERSISTENCE
+// ==========================================
+async function loadConversations(autoSelect = true) {
+  const listEl = document.getElementById('threadsList');
+  if (!listEl) return;
+
+  try {
+    const res = await fetch('/api/relationships/conversations');
+    if (!res.ok) {
+      listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem;">Sign in required.</div>';
+      return;
+    }
+    allConversations = await res.json() || [];
+    renderThreads(allConversations);
+
+    if (autoSelect) {
+      const savedId = localStorage.getItem('tracera-active-conv');
+      const targetId = (savedId && allConversations.find(c => c.id === savedId))
+        ? savedId
+        : (allConversations.length > 0 ? allConversations[0].id : null);
+
+      if (targetId) {
+        await selectConversation(targetId);
+      } else {
+        currentConversationId = null;
+        WelcomeScreen.show();
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load conversations:', err);
+    listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem;">Unable to load conversations.</div>';
+  }
+}
+
+function renderThreads(threads) {
+  const listEl = document.getElementById('threadsList');
+  if (!listEl) return;
+
+  if (threads.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.78rem; padding:1.5rem 0.5rem; text-align:center;">No conversations yet. Start a new exploration!</div>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  threads.forEach(c => {
+    const item = document.createElement('div');
+    item.className = `tracera-thread-item ${c.id === currentConversationId ? 'active' : ''}`;
+    item.id = `thread-${c.id}`;
+
+    const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+
+    item.innerHTML = `
+      <div class="tracera-thread-info">
+        <span class="tracera-thread-title">${escapeHtml(c.title || 'Exploration')}</span>
+        <span class="tracera-thread-date">${dateStr}</span>
+      </div>
+      <div class="tracera-thread-actions">
+        <button class="tracera-action-btn" title="Rename investigation" onclick="event.stopPropagation(); renameThread('${c.id}')">✏️</button>
+        <button class="tracera-action-btn delete" title="Delete conversation" onclick="event.stopPropagation(); deleteThread('${c.id}')">🗑️</button>
+      </div>
+    `;
+
+    item.onclick = () => selectConversation(c.id);
+    listEl.appendChild(item);
+  });
+}
+
+async function selectConversation(convId) {
+  currentConversationId = convId;
+  localStorage.setItem('tracera-active-conv', convId);
+
+  // Highlight active thread item in sidebar
+  document.querySelectorAll('.tracera-thread-item').forEach(el => el.classList.remove('active'));
+  const activeEl = document.getElementById(`thread-${convId}`);
+  if (activeEl) activeEl.classList.add('active');
+
+  const container = ChatMessageList.getContainer();
+  if (!container) return;
+
+  ChatMessageList.clear();
+  container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; padding:2rem; text-align:center;">Loading conversation history...</div>';
+
+  try {
+    const res = await fetch(`/api/relationships/conversations/${convId}`);
+    if (!res.ok) {
+      container.innerHTML = '<div style="color:var(--color-danger); padding:2rem; text-align:center;">Unable to load conversation details.</div>';
+      return;
+    }
+    const detail = await res.json();
+    ChatMessageList.clear();
+
+    const titleEl = document.getElementById('activeConvTitle');
+    if (titleEl) titleEl.textContent = detail.title || 'Conversation';
+
+    if (!detail.messages || detail.messages.length === 0) {
+      WelcomeScreen.show();
+      return;
+    }
+
+    // Render each saved message exactly once in chronological order
+    detail.messages.forEach(msg => {
+      const msgId = msg.id || ('hist-' + Math.random().toString(36).substr(2, 9));
+      if (msg.role === 'user') {
+        ChatMessageList.addUserMessage(msgId, msg.content, msg.created_at);
+      } else {
+        ChatMessageList.addAssistantMessage(msgId, msg.content, {
+          format_requested: msg.format_requested,
+          format_explanation: msg.format_explanation,
+          graph: msg.graph_data,
+          table_data: msg.table_data,
+          timeline_data: msg.timeline_data,
+          flowchart_data: msg.flowchart_data,
+          timestamp: msg.created_at,
+        });
+      }
+    });
+
+    ChatMessageList.scrollToBottom();
+  } catch (err) {
+    console.error('Failed to fetch conversation history:', err);
+    container.innerHTML = `<div style="color:var(--color-danger); padding:2rem; text-align:center;">Error: ${err.message}</div>`;
+  }
+}
+
+async function createNewConversation() {
+  try {
+    const res = await fetch('/api/relationships/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'New Exploration' }),
+    });
+    if (!res.ok) return;
+    const newConv = await res.json();
+    currentConversationId = newConv.id;
+    localStorage.setItem('tracera-active-conv', newConv.id);
+    const titleEl = document.getElementById('activeConvTitle');
+    if (titleEl) titleEl.textContent = newConv.title || 'New Exploration';
+
+    await loadConversations(false);
+    WelcomeScreen.show();
+    MessageComposer.focus();
+  } catch (err) {
+    console.error('Failed to create new conversation:', err);
+  }
+}
+
+async function renameThread(convId) {
+  const newTitle = prompt('Enter a new title for this TRACERA investigation:');
+  if (!newTitle || !newTitle.trim()) return;
+
+  try {
+    const res = await fetch(`/api/relationships/conversations/${convId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle.trim() }),
+    });
+    if (res.ok) {
+      if (currentConversationId === convId) {
+        const titleEl = document.getElementById('activeConvTitle');
+        if (titleEl) titleEl.textContent = newTitle.trim();
+      }
+      await loadConversations(false);
+    }
+  } catch (err) {
+    console.error('Failed to rename conversation:', err);
+  }
+}
+
+async function deleteThread(convId) {
+  if (!confirm('Are you sure you want to delete this conversation thread? This action cannot be undone.')) return;
+
+  try {
+    const res = await fetch(`/api/relationships/conversations/${convId}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      if (currentConversationId === convId) {
+        currentConversationId = null;
+        localStorage.removeItem('tracera-active-conv');
+        const titleEl = document.getElementById('activeConvTitle');
+        if (titleEl) titleEl.textContent = 'New Exploration';
+        WelcomeScreen.show();
+      }
+      await loadConversations(false);
+    }
+  } catch (err) {
+    console.error('Failed to delete conversation:', err);
+  }
+}
+
+function suggestPrompt(text) {
+  if (MessageComposer.inputEl) {
+    MessageComposer.inputEl.value = text;
+    sendChatMessage();
+  }
+}
+
+// ==========================================
+// 8. RICH MARKDOWN RENDERING ENGINE
+// ==========================================
+function renderMarkdown(md) {
+  if (!md) return '';
+
+  // Extract fenced code blocks first to protect them from regex replacements
+  const codeBlocks = [];
+  let text = md.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const index = codeBlocks.length;
+    codeBlocks.push({ lang: lang || '', code: code.trim() });
+    return `%%CODEBLOCK_${index}%%`;
+  });
+
+  // Extract markdown tables
+  const tables = [];
+  text = text.replace(/((?:^[ \t]*\|.+?\|[ \t]*\r?\n)+(?:^[ \t]*\|[-: |]+\|[ \t]*\r?\n)(?:^[ \t]*\|.+?\|[ \t]*(?:\r?\n|$))+)/gm, (match) => {
+    const index = tables.length;
+    tables.push(parseMarkdownTable(match));
+    return `\n\n%%TABLE_${index}%%\n\n`;
+  });
+
+  // Escape HTML tags in normal text
+  text = escapeHtml(text);
+
+  // Headings
+  text = text.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+  text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // Blockquotes
+  text = text.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+  // Bold & Italics
+  text = text.replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>');
+  text = text.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+  text = text.replace(/__(.*?)__/gim, '<strong>$1</strong>');
+  text = text.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+  text = text.replace(/_([^_]+)_/gim, '<em>$1</em>');
+
+  // Inline Code
+  text = text.replace(/`([^`]+)`/gim, '<code>$1</code>');
+
+  // Horizontal Rules
+  text = text.replace(/^---$/gim, '<hr style="border:none; border-top:1px solid var(--border-subtle); margin:1.25rem 0;">');
+
+  // Lists (Unordered & Numbered)
+  text = text.replace(/^\s*[-*•]\s+(.*$)/gim, '<li>$1</li>');
+  text = text.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li value="$1">$2</li>');
+
+  // Wrap consecutive list items in <ul>
+  text = text.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gis, '<ul>$1</ul>');
+
+  // Paragraphs
+  const sections = text.split(/\n{2,}/);
+  text = sections.map(sec => {
+    sec = sec.trim();
+    if (!sec) return '';
+    // Skip wrapping if it's already a block element or placeholder
+    if (sec.startsWith('<h') || sec.startsWith('<ul>') || sec.startsWith('<ol>') || 
+        sec.startsWith('<blockquote>') || sec.startsWith('<hr') || 
+        sec.startsWith('%%CODEBLOCK_') || sec.startsWith('%%TABLE_')) {
+      return sec;
+    }
+    return `<p>${sec.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
+
+  // Restore code blocks
+  codeBlocks.forEach((item, i) => {
+    const escapedCode = escapeHtml(item.code);
+    const blockHtml = `<pre><code>${escapedCode}</code></pre>`;
+    text = text.replace(new RegExp(`%%CODEBLOCK_${i}%%`, 'g'), blockHtml);
+  });
+
+  // Restore tables
+  tables.forEach((tableHtml, i) => {
+    text = text.replace(new RegExp(`%%TABLE_${i}%%`, 'g'), tableHtml);
+  });
+
+  return text;
+}
+
+function parseMarkdownTable(tableText) {
+  const lines = tableText.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+  if (lines.length < 2) return '';
+
+  const headerLine = lines[0];
+  const headers = headerLine.slice(1, -1).split('|').map(h => escapeHtml(h.trim()));
+
+  let html = '<table class="tracera-md-table"><thead><tr>';
+  headers.forEach(h => {
+    html += `<th>${h}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Skip delimiter line (index 1)
+  for (let i = 2; i < lines.length; i++) {
+    const rowLine = lines[i];
+    const cells = rowLine.slice(1, -1).split('|').map(c => escapeHtml(c.trim()));
+    html += '<tr>';
+    headers.forEach((_, colIdx) => {
+      html += `<td>${cells[colIdx] || ''}</td>`;
+    });
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ==========================================
+// 9. CYTOSCAPE.JS & INSPECTOR MODAL
+// ==========================================
+function initCytoscapeGraph(containerId, graphData) {
+  if (typeof cytoscape === 'undefined') {
+    console.warn('Cytoscape.js library not loaded.');
+    return;
+  }
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const elements = [];
+  if (graphData.nodes) {
+    graphData.nodes.forEach(n => {
+      elements.push({
+        data: {
+          id: n.id,
+          label: n.label,
+          type: n.entity_type,
+          source: n.source_name,
+          raw: n,
+        }
+      });
+    });
+  }
+
+  if (graphData.edges) {
+    graphData.edges.forEach((e, idx) => {
+      elements.push({
+        data: {
+          id: 'e_' + idx + '_' + e.source + '_' + e.target,
+          source: e.source,
+          target: e.target,
+          label: e.cardinality || '',
+          evidence: e.evidence,
+          confidence: e.confidence_score,
+          raw: e,
+        }
+      });
+    });
+  }
+
+  const cy = cytoscape({
+    container: container,
+    elements: elements,
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'background-color': '#0C2B1E',
+          'border-width': 2,
+          'border-color': '#D4A72C',
+          'label': 'data(label)',
+          'color': '#EAEAEA',
+          'font-size': '10px',
+          'font-family': 'monospace',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'width': '52px',
+          'height': '52px',
+          'text-wrap': 'wrap',
+          'text-max-width': '48px',
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          'width': 2,
+          'line-color': '#555555',
+          'target-arrow-color': '#D4A72C',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'label': 'data(label)',
+          'font-size': '8px',
+          'color': '#888888',
+          'text-rotation': 'autorotate',
+          'text-margin-y': -8,
+        }
+      }
+    ],
+    layout: {
+      name: 'breadthfirst',
+      directed: true,
+      padding: 20,
+      spacingFactor: 1.2,
+    }
+  });
+
+  activeCytoscapeInstances[containerId] = cy;
+}
+
+function zoomGraph(containerId, factor) {
+  const cy = activeCytoscapeInstances[containerId];
+  if (cy) cy.zoom(cy.zoom() * factor);
+}
+
+function fitGraph(containerId) {
+  const cy = activeCytoscapeInstances[containerId];
+  if (cy) cy.fit(30);
+}
+
+function initModalListeners() {
+  const closeBtn = document.getElementById('modalCloseBtn');
+  const closeFooterBtn = document.getElementById('modalCloseBtnFooter');
+  const modal = document.getElementById('detailModal');
+
+  const closeModal = () => { if (modal) modal.classList.remove('active'); };
+  if (closeBtn) closeBtn.onclick = closeModal;
+  if (closeFooterBtn) closeFooterBtn.onclick = closeModal;
+  if (modal) {
+    modal.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
+  }
+}
+
+// ==========================================
+// 10. APP INITIALIZATION & THEME
+// ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
   initThemeToggle();
-  initChatInput();
   initSearchFilter();
   initModalListeners();
+  MessageComposer.init(sendChatMessage);
   await loadSources();
   await loadConversations();
 });
 
-// --- Theme handling ---
 function initThemeToggle() {
   const toggleBtn = document.getElementById('themeToggleBtn');
   if (!toggleBtn) return;
@@ -43,7 +1027,6 @@ function initThemeToggle() {
   });
 }
 
-// --- Data Sources Pill Tray ---
 async function loadSources() {
   try {
     const res = await fetch('/api/relationships/sources');
@@ -92,71 +1075,6 @@ async function loadSources() {
   }
 }
 
-// --- Conversations List & Search Filter ---
-async function loadConversations(autoSelect = true) {
-  const listEl = document.getElementById('threadsList');
-  if (!listEl) return;
-
-  try {
-    const res = await fetch('/api/relationships/conversations');
-    if (!res.ok) {
-      listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem;">Sign in required.</div>';
-      return;
-    }
-    allConversations = await res.json() || [];
-    renderThreads(allConversations);
-
-    if (autoSelect) {
-      const savedId = localStorage.getItem('tracera-active-conv');
-      const targetId = (savedId && allConversations.find(c => c.id === savedId))
-        ? savedId
-        : (allConversations.length > 0 ? allConversations[0].id : null);
-
-      if (targetId) {
-        await selectConversation(targetId);
-      } else {
-        showWelcomeHero();
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load conversations:', err);
-    listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:1rem;">Unable to load conversations.</div>';
-  }
-}
-
-function renderThreads(threads) {
-  const listEl = document.getElementById('threadsList');
-  if (!listEl) return;
-
-  if (threads.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.78rem; padding:1.5rem 0.5rem; text-align:center;">No conversations yet. Start a new exploration!</div>';
-    return;
-  }
-
-  listEl.innerHTML = '';
-  threads.forEach(c => {
-    const item = document.createElement('div');
-    item.className = `tracera-thread-item ${c.id === currentConversationId ? 'active' : ''}`;
-    item.id = `thread-${c.id}`;
-
-    const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
-
-    item.innerHTML = `
-      <div class="tracera-thread-info">
-        <span class="tracera-thread-title">${escapeHtml(c.title || 'Exploration')}</span>
-        <span class="tracera-thread-date">${dateStr}</span>
-      </div>
-      <div class="tracera-thread-actions">
-        <button class="tracera-action-btn" title="Rename investigation" onclick="event.stopPropagation(); renameThread('${c.id}')">✏️</button>
-        <button class="tracera-action-btn delete" title="Delete conversation" onclick="event.stopPropagation(); deleteThread('${c.id}')">🗑️</button>
-      </div>
-    `;
-
-    item.onclick = () => selectConversation(c.id);
-    listEl.appendChild(item);
-  });
-}
-
 function initSearchFilter() {
   const searchInput = document.getElementById('searchThreadsInput');
   if (!searchInput) return;
@@ -172,323 +1090,6 @@ function initSearchFilter() {
   });
 }
 
-let lastUserMessage = '';
-
-async function selectConversation(convId) {
-  currentConversationId = convId;
-  localStorage.setItem('tracera-active-conv', convId);
-
-  // Highlight active thread item in sidebar
-  document.querySelectorAll('.tracera-thread-item').forEach(el => el.classList.remove('active'));
-  const activeEl = document.getElementById(`thread-${convId}`);
-  if (activeEl) activeEl.classList.add('active');
-
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-  container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; padding:2rem; text-align:center;">Loading conversation history...</div>';
-
-  try {
-    const res = await fetch(`/api/relationships/conversations/${convId}`);
-    if (!res.ok) {
-      container.innerHTML = '<div style="color:var(--color-danger); padding:2rem; text-align:center;">Unable to load conversation details.</div>';
-      return;
-    }
-    const detail = await res.json();
-    container.innerHTML = '';
-
-    const titleEl = document.getElementById('activeConvTitle');
-    if (titleEl) titleEl.textContent = detail.title || 'Conversation';
-
-    if (!detail.messages || detail.messages.length === 0) {
-      showWelcomeHero();
-      return;
-    }
-
-    detail.messages.forEach(msg => {
-      appendMessageToChat(msg.role, msg.content, {
-        format_requested: msg.format_requested,
-        format_explanation: msg.format_explanation,
-        graph: msg.graph_data,
-        table_data: msg.table_data,
-        timeline_data: msg.timeline_data,
-        flowchart_data: msg.flowchart_data,
-        timestamp: msg.created_at,
-      });
-    });
-
-    scrollChatToBottom();
-  } catch (err) {
-    console.error('Failed to fetch conversation history:', err);
-    container.innerHTML = `<div style="color:var(--color-danger); padding:2rem; text-align:center;">Error: ${err.message}</div>`;
-  }
-}
-
-async function createNewConversation() {
-  try {
-    const res = await fetch('/api/relationships/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'New Exploration' }),
-    });
-    if (!res.ok) return;
-    const newConv = await res.json();
-    currentConversationId = newConv.id;
-    localStorage.setItem('tracera-active-conv', newConv.id);
-    const titleEl = document.getElementById('activeConvTitle');
-    if (titleEl) titleEl.textContent = newConv.title || 'New Exploration';
-    await loadConversations(false);
-    showWelcomeHero();
-    const input = document.getElementById('chatInput');
-    if (input) {
-      input.focus();
-      input.style.height = '110px';
-    }
-  } catch (err) {
-    console.error('Failed to create new conversation:', err);
-  }
-}
-
-async function renameThread(convId) {
-  const newTitle = prompt('Enter a new title for this TRACERA investigation:');
-  if (!newTitle || !newTitle.trim()) return;
-
-  try {
-    const res = await fetch(`/api/relationships/conversations/${convId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle.trim() }),
-    });
-    if (res.ok) {
-      if (currentConversationId === convId) {
-        const titleEl = document.getElementById('activeConvTitle');
-        if (titleEl) titleEl.textContent = newTitle.trim();
-      }
-      await loadConversations(false);
-    }
-  } catch (err) {
-    console.error('Failed to rename conversation:', err);
-  }
-}
-
-async function deleteThread(convId) {
-  if (!confirm('Are you sure you want to delete this conversation thread? This action cannot be undone.')) return;
-
-  try {
-    const res = await fetch(`/api/relationships/conversations/${convId}`, {
-      method: 'DELETE',
-    });
-    if (res.ok) {
-      if (currentConversationId === convId) {
-        currentConversationId = null;
-        localStorage.removeItem('tracera-active-conv');
-        const titleEl = document.getElementById('activeConvTitle');
-        if (titleEl) titleEl.textContent = 'New Exploration';
-        showWelcomeHero();
-      }
-      await loadConversations(false);
-    }
-  } catch (err) {
-    console.error('Failed to delete conversation:', err);
-  }
-}
-
-function showWelcomeHero() {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="tracera-welcome-card" id="welcomeHero">
-      <div class="tracera-welcome-icon">⚡</div>
-      <h1 class="tracera-welcome-title">TRACERA</h1>
-      <div class="tracera-welcome-tagline">Trace. Analyze. Understand.</div>
-      <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
-        BY PRIVSIGHT · AI-Powered Relationship Intelligence Assistant
-      </div>
-      <p class="tracera-welcome-desc">
-        Welcome to TRACERA. I am your specialized AI assistant inside PrivSight, ready to answer questions regarding your personal-data discovery inventory, evidence gap analysis, detection rules, and privacy compliance. (Advanced visual relationship graph topology and multi-hop link discovery are planned for Phase 2).
-      </p>
-
-      <div class="tracera-prompts-grid">
-        <div class="tracera-prompt-card" onclick="suggestPrompt('What is PrivSight\\'s methodology for personal data discovery and evidence inventory?')">
-          <div class="tracera-prompt-icon">🔍</div>
-          <div class="tracera-prompt-title">Discovery Methodology</div>
-          <div class="tracera-prompt-sub">Learn how PrivSight discovers and categorizes personal data across your files and databases.</div>
-        </div>
-
-        <div class="tracera-prompt-card" onclick="suggestPrompt('How are confidence scores and Missing Proofs calculated in the inventory?')">
-          <div class="tracera-prompt-icon">⚠️</div>
-          <div class="tracera-prompt-title">Missing Proofs & Gaps</div>
-          <div class="tracera-prompt-sub">Understand how technical evidence verification separates confirmed facts from missing proofs.</div>
-        </div>
-
-        <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the difference between direct personal identifiers and quasi-identifiers under GDPR.')">
-          <div class="tracera-prompt-icon">🛡️</div>
-          <div class="tracera-prompt-title">Direct vs Quasi-Identifiers</div>
-          <div class="tracera-prompt-sub">Review compliance distinctions and privacy risk implications for sensitive data fields.</div>
-        </div>
-
-        <div class="tracera-prompt-card" onclick="suggestPrompt('How do detection rules scan database columns, CSVs, and unstructured files?')">
-          <div class="tracera-prompt-icon">⚙️</div>
-          <div class="tracera-prompt-title">Detection Rule Mechanics</div>
-          <div class="tracera-prompt-sub">Explore how regex, entropy, and NLP heuristics evaluate PII candidate likelihood.</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// --- Chat Input Handling (Phase 1 Large Responsive Composer) ---
-function initChatInput() {
-  const input = document.getElementById('chatInput');
-  const sendBtn = document.getElementById('btnSendChat');
-  const newChatBtn = document.getElementById('btnNewChat');
-
-  if (newChatBtn) {
-    newChatBtn.addEventListener('click', createNewConversation);
-  }
-
-  if (input && sendBtn) {
-    // Initial disabled state when composer is empty
-    sendBtn.disabled = true;
-    input.style.height = '110px';
-
-    const updateComposerState = () => {
-      const val = input.value.trim();
-      sendBtn.disabled = val.length === 0;
-
-      // Auto-expand textarea between 110px and 250px
-      input.style.height = 'auto';
-      const targetHeight = Math.max(110, Math.min(input.scrollHeight, 250));
-      input.style.height = targetHeight + 'px';
-    };
-
-    input.addEventListener('input', updateComposerState);
-
-    // Enter sends, Shift+Enter creates newline
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (!sendBtn.disabled && input.value.trim()) {
-          sendChatMessage();
-        }
-      }
-    });
-
-    sendBtn.addEventListener('click', () => {
-      if (!sendBtn.disabled && input.value.trim()) {
-        sendChatMessage();
-      }
-    });
-  }
-}
-
-async function sendChatMessage() {
-  const input = document.getElementById('chatInput');
-  const sendBtn = document.getElementById('btnSendChat');
-  if (!input || !sendBtn) return;
-
-  const message = input.value.trim();
-  if (!message) return;
-
-  lastUserMessage = message;
-
-  // Clear welcome hero if present
-  const hero = document.getElementById('welcomeHero');
-  if (hero) hero.remove();
-
-  input.value = '';
-  input.style.height = '110px';
-  sendBtn.disabled = true;
-
-  // 1. Render User Message
-  appendMessageToChat('user', message, { format_requested: currentFormatPreference });
-  scrollChatToBottom();
-
-  // 2. Render Loading State Indicator
-  const loadingId = 'loading-' + Date.now();
-  appendLoadingBubble(loadingId);
-  scrollChatToBottom();
-
-  try {
-    const payload = {
-      message: message,
-      conversation_id: currentConversationId,
-      selected_sources: selectedSources.length > 0 ? selectedSources : null,
-      format_preference: currentFormatPreference !== 'text' ? currentFormatPreference : null,
-    };
-
-    const res = await fetch('/api/relationships/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    removeLoadingBubble(loadingId);
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      appendErrorMessageToChat(errData.detail || 'Server error occurred.', message);
-      return;
-    }
-
-    const report = await res.json();
-
-    // Render Assistant Response
-    appendMessageToChat('assistant', report.explanation, report);
-    scrollChatToBottom();
-
-    // Refresh threads list in background to reflect updated title
-    await loadConversations(false);
-
-  } catch (err) {
-    removeLoadingBubble(loadingId);
-    appendErrorMessageToChat(`Network connection failed: ${err.message}`, message);
-  } finally {
-    const hasText = input.value.trim().length > 0;
-    sendBtn.disabled = !hasText;
-    input.focus();
-  }
-}
-
-function appendErrorMessageToChat(errorText, failedQuery) {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-
-  const row = document.createElement('div');
-  row.className = 'tracera-message-row assistant';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'tracera-avatar';
-  avatar.textContent = '⚡';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'tracera-bubble';
-  bubble.style.borderColor = 'var(--color-danger)';
-  bubble.style.background = 'rgba(239, 68, 68, 0.08)';
-
-  bubble.innerHTML = `
-    <div class="tracera-bubble-header">
-      <div class="tracera-author-badge" style="color: var(--color-danger);">
-        <span>TRACERA Alert</span>
-      </div>
-      <span class="tracera-timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-    </div>
-    <div class="tracera-bubble-content" style="color: var(--text-primary);">
-      <p style="margin-bottom:0.5rem;">⚠️ <strong>Request Error:</strong> ${escapeHtml(errorText)}</p>
-    </div>
-    <div style="margin-top:0.75rem; padding-top:0.5rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end;">
-      <button class="tracera-action-btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:0.3rem 0.65rem; border-radius:var(--radius-sm); font-size:0.75rem; cursor:pointer;" onclick="suggestPrompt('${escapeHtml(failedQuery)}')">
-        🔄 Retry Question
-      </button>
-    </div>
-  `;
-
-  row.appendChild(avatar);
-  row.appendChild(bubble);
-  container.appendChild(row);
-  scrollChatToBottom();
-}
-
 function setFormatPreference(fmt) {
   currentFormatPreference = fmt;
   document.querySelectorAll('.tracera-chip').forEach(c => {
@@ -498,558 +1099,4 @@ function setFormatPreference(fmt) {
       c.classList.remove('active');
     }
   });
-}
-
-function suggestPrompt(text) {
-  const input = document.getElementById('chatInput');
-  if (input) {
-    input.value = text;
-    input.focus();
-    sendChatMessage();
-  }
-}
-
-// --- Message Rendering Engine ---
-function appendMessageToChat(role, text, metadata = {}) {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-
-  const row = document.createElement('div');
-  row.className = `tracera-message-row ${role}`;
-
-  const avatar = document.createElement('div');
-  avatar.className = 'tracera-avatar';
-  avatar.textContent = role === 'user' ? '👤' : '⚡';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'tracera-bubble';
-
-  // Bubble header
-  const header = document.createElement('div');
-  header.className = 'tracera-bubble-header';
-
-  const authorBadge = document.createElement('div');
-  authorBadge.className = 'tracera-author-badge';
-  if (role === 'user') {
-    authorBadge.innerHTML = '<span>You</span>';
-  } else {
-    authorBadge.innerHTML = `
-      <span>TRACERA</span>
-      <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-size:0.65rem;">BY PRIVSIGHT</span>
-      <span class="tracera-author-tagline">Trace · Analyze · Understand</span>
-    `;
-  }
-
-  const timeEl = document.createElement('span');
-  timeEl.className = 'tracera-timestamp';
-  const time = metadata.timestamp ? new Date(metadata.timestamp) : new Date();
-  timeEl.textContent = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  header.appendChild(authorBadge);
-  header.appendChild(timeEl);
-  bubble.appendChild(header);
-
-  // 1. If Graph was generated, insert interactive Cytoscape graph container
-  if (metadata.graph && metadata.graph.nodes && metadata.graph.nodes.length > 0) {
-    const graphId = 'cy-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-    const graphWrapper = document.createElement('div');
-    graphWrapper.className = 'tracera-graph-container';
-    graphWrapper.id = graphId;
-
-    graphWrapper.innerHTML = `
-      <div class="tracera-graph-toolbar">
-        <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 1.25)" title="Zoom in">➕</button>
-        <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 0.8)" title="Zoom out">➖</button>
-        <button class="tracera-graph-btn" onclick="fitGraph('${graphId}')" title="Fit to view">🎯 Fit</button>
-      </div>
-    `;
-    bubble.appendChild(graphWrapper);
-
-    requestAnimationFrame(() => {
-      initCytoscapeGraph(graphId, metadata.graph);
-    });
-  }
-
-  // 2. If Table data was generated, insert structured table
-  if (metadata.table_data && Array.isArray(metadata.table_data) && metadata.table_data.length > 0) {
-    const tableWrapper = document.createElement('div');
-    tableWrapper.className = 'tracera-table-wrapper';
-
-    const cols = Object.keys(metadata.table_data[0]);
-    let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
-    cols.forEach(c => {
-      const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
-      tableHtml += `<th style="padding:0.6rem 0.75rem; text-align:left;">${escapeHtml(formattedTitle)}</th>`;
-    });
-    tableHtml += '</tr></thead><tbody>';
-
-    metadata.table_data.forEach(rowItem => {
-      tableHtml += '<tr>';
-      cols.forEach(c => {
-        let val = rowItem[c];
-        if (val === null || val === undefined) val = '-';
-        if (c.includes('status')) {
-          val = `<span class="badge badge-status-complete">${escapeHtml(String(val))}</span>`;
-        } else if (c.includes('cardinality')) {
-          val = `<span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
-        } else {
-          val = escapeHtml(String(val));
-        }
-        tableHtml += `<td style="padding:0.5rem 0.75rem; border-top:1px solid var(--border-color);">${val}</td>`;
-      });
-      tableHtml += '</tr>';
-    });
-    tableHtml += '</tbody></table>';
-
-    tableWrapper.innerHTML = tableHtml;
-    bubble.appendChild(tableWrapper);
-  }
-
-  // 3. If Timeline data was generated, render chronological cards
-  if (metadata.timeline_data && Array.isArray(metadata.timeline_data) && metadata.timeline_data.length > 0) {
-    const timelineWrapper = document.createElement('div');
-    timelineWrapper.style.margin = '0.85rem 0';
-    timelineWrapper.style.display = 'flex';
-    timelineWrapper.style.flexDirection = 'column';
-    timelineWrapper.style.gap = '0.6rem';
-
-    metadata.timeline_data.forEach(ev => {
-      const card = document.createElement('div');
-      card.style.background = 'var(--bg-elevated)';
-      card.style.border = '1px solid var(--border-color)';
-      card.style.borderRadius = 'var(--radius-sm)';
-      card.style.padding = '0.65rem 0.9rem';
-      card.style.display = 'flex';
-      card.style.justifyContent = 'space-between';
-      card.style.alignItems = 'center';
-
-      card.innerHTML = `
-        <div>
-          <div style="font-weight:700; font-size:0.82rem; color:var(--text-primary); margin-bottom:0.15rem;">
-            ${escapeHtml(ev.entity || 'Event')}
-          </div>
-          <div style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(ev.description || '')}</div>
-        </div>
-        <div style="text-align:right;">
-          <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">
-            ${escapeHtml(ev.date || '')}
-          </span>
-        </div>
-      `;
-      timelineWrapper.appendChild(card);
-    });
-    bubble.appendChild(timelineWrapper);
-  }
-
-  // 4. Formatted Markdown Analytical Text Content
-  const textDiv = document.createElement('div');
-  textDiv.className = 'tracera-bubble-content';
-  textDiv.innerHTML = renderMarkdown(text || '');
-  bubble.appendChild(textDiv);
-
-  // 5. Evidence Provenance & Action Footer for Assistant Messages
-  if (role === 'assistant') {
-    const footer = document.createElement('div');
-    footer.style.marginTop = '0.85rem';
-    footer.style.paddingTop = '0.5rem';
-    footer.style.borderTop = '1px solid var(--border-subtle)';
-    footer.style.display = 'flex';
-    footer.style.flexWrap = 'wrap';
-    footer.style.justifyContent = 'space-between';
-    footer.style.alignItems = 'center';
-    footer.style.gap = '0.5rem';
-
-    const leftBadges = document.createElement('div');
-    leftBadges.style.display = 'flex';
-    leftBadges.style.alignItems = 'center';
-    leftBadges.style.gap = '0.4rem';
-    leftBadges.innerHTML = `
-      <span class="badge" style="background:rgba(16,185,129,0.12); color:var(--color-success); font-size:0.68rem; font-weight:700;">✔ Verified Schema Engine</span>
-      <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); font-size:0.68rem;">🔒 PII Masked</span>
-    `;
-
-    const rightActions = document.createElement('div');
-    rightActions.style.display = 'flex';
-    rightActions.style.gap = '0.4rem';
-
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'tracera-action-btn';
-    copyBtn.style.fontSize = '0.72rem';
-    copyBtn.innerHTML = '📋 Copy';
-    copyBtn.onclick = () => {
-      navigator.clipboard.writeText(text || '');
-      copyBtn.innerHTML = '✔ Copied!';
-      setTimeout(() => { copyBtn.innerHTML = '📋 Copy'; }, 2000);
-    };
-
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'tracera-action-btn';
-    retryBtn.style.fontSize = '0.72rem';
-    retryBtn.innerHTML = '🔄 Retry';
-    retryBtn.title = 'Retry last question';
-    retryBtn.onclick = () => {
-      if (lastUserMessage) {
-        suggestPrompt(lastUserMessage);
-      }
-    };
-
-    rightActions.appendChild(copyBtn);
-    rightActions.appendChild(retryBtn);
-
-    footer.appendChild(leftBadges);
-    footer.appendChild(rightActions);
-    bubble.appendChild(footer);
-  }
-
-  row.appendChild(avatar);
-  row.appendChild(bubble);
-  container.appendChild(row);
-}
-
-// --- Loading Bubble ---
-function appendLoadingBubble(id) {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-
-  const row = document.createElement('div');
-  row.className = 'tracera-message-row assistant';
-  row.id = id;
-
-  row.innerHTML = `
-    <div class="tracera-avatar">⚡</div>
-    <div class="tracera-bubble" style="padding:0.75rem 1.15rem;">
-      <div style="display:flex; align-items:center; gap:0.65rem; color:var(--text-secondary); font-size:0.82rem;">
-        <span class="status-pulse-dot" style="background:var(--accent-gold);"></span>
-        <span>TRACERA is tracing entity linkages, verifying relational paths, and analyzing evidence...</span>
-      </div>
-    </div>
-  `;
-  container.appendChild(row);
-}
-
-function removeLoadingBubble(id) {
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-function scrollChatToBottom() {
-  const container = document.getElementById('chatMessages');
-  if (!container) return;
-  container.scrollTop = container.scrollHeight;
-}
-
-// --- Cytoscape.js Relationship Graph Renderer ---
-function initCytoscapeGraph(containerId, graphData) {
-  if (typeof cytoscape === 'undefined') {
-    console.warn('Cytoscape.js library not loaded yet.');
-    return;
-  }
-
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  const elements = [];
-
-  // 1. Convert Nodes with category color mapping
-  (graphData.nodes || []).forEach(n => {
-    let nodeColor = '#D4A72C'; // Gold by default
-    const typeLower = (n.entity_type || '').toLowerCase();
-
-    if (typeLower.includes('person') || typeLower.includes('customer')) {
-      nodeColor = '#D4A72C'; // Gold
-    } else if (typeLower.includes('order') || typeLower.includes('payment') || typeLower.includes('financial')) {
-      nodeColor = '#F97316'; // Orange
-    } else if (typeLower.includes('department') || typeLower.includes('org')) {
-      nodeColor = '#10B981'; // Emerald
-    } else if (typeLower.includes('document') || typeLower.includes('file')) {
-      nodeColor = '#06B6D4'; // Cyan
-    } else if (typeLower.includes('email') || typeLower.includes('contact')) {
-      nodeColor = '#8B5CF6'; // Purple
-    }
-
-    elements.push({
-      data: {
-        id: n.id,
-        label: n.label || n.id,
-        entity_type: n.entity_type,
-        source_name: n.source_name,
-        color: nodeColor,
-        raw_data: n,
-      }
-    });
-  });
-
-  // 2. Convert Edges with cardinality and verification markers
-  (graphData.edges || []).forEach(e => {
-    elements.push({
-      data: {
-        id: e.id,
-        source: e.source_id,
-        target: e.target_id,
-        label: e.cardinality ? `${e.cardinality}` : '',
-        relationship_type: e.relationship_type,
-        evidence: e.evidence,
-        raw_data: e,
-      }
-    });
-  });
-
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  const textColor = isLight ? '#25231F' : '#F7F3EA';
-  const edgeColor = isLight ? '#A8A29E' : '#57534E';
-
-  try {
-    const cy = cytoscape({
-      container: container,
-      elements: elements,
-      style: [
-        {
-          selector: 'node',
-          style: {
-            'background-color': 'data(color)',
-            'label': 'data(label)',
-            'color': textColor,
-            'font-family': 'Plus Jakarta Sans, sans-serif',
-            'font-size': '11px',
-            'font-weight': 700,
-            'text-valign': 'bottom',
-            'text-margin-y': 6,
-            'width': 34,
-            'height': 34,
-            'border-width': 2,
-            'border-color': '#FFFFFF',
-            'border-opacity': 0.8,
-            'overlay-opacity': 0,
-            'transition-property': 'transform, border-width, border-color',
-            'transition-duration': '0.2s',
-          }
-        },
-        {
-          selector: 'node:selected',
-          style: {
-            'border-width': 4,
-            'border-color': '#F97316',
-            'border-opacity': 1,
-          }
-        },
-        {
-          selector: 'edge',
-          style: {
-            'width': 2.5,
-            'line-color': edgeColor,
-            'target-arrow-color': edgeColor,
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'label': 'data(label)',
-            'font-family': 'JetBrains Mono, monospace',
-            'font-size': '9px',
-            'color': textColor,
-            'text-background-color': isLight ? '#FAFAF7' : '#1E1E1E',
-            'text-background-opacity': 0.85,
-            'text-background-padding': '3px',
-            'text-background-shape': 'roundrectangle',
-          }
-        },
-        {
-          selector: 'edge:selected',
-          style: {
-            'width': 4,
-            'line-color': '#D4A72C',
-            'target-arrow-color': '#D4A72C',
-          }
-        }
-      ],
-      layout: {
-        name: 'cose',
-        animate: false,
-        padding: 40,
-        nodeRepulsion: 450000,
-        idealEdgeLength: 100,
-      }
-    });
-
-    // Save instance
-    activeCytoscapeInstances[containerId] = cy;
-
-    // Node click handler
-    cy.on('tap', 'node', (evt) => {
-      const node = evt.target;
-      const data = node.data('raw_data');
-      openInspectorModal(`Node: ${data.label}`, generateNodeInspectorHtml(data));
-    });
-
-    // Edge click handler
-    cy.on('tap', 'edge', (evt) => {
-      const edge = evt.target;
-      const data = edge.data('raw_data');
-      openInspectorModal(`Connection: ${data.relationship_type}`, generateEdgeInspectorHtml(data));
-    });
-
-  } catch (err) {
-    console.error('Error rendering Cytoscape graph:', err);
-  }
-}
-
-function zoomGraph(containerId, factor) {
-  const cy = activeCytoscapeInstances[containerId];
-  if (cy) {
-    cy.zoom({
-      level: cy.zoom() * factor,
-      renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 }
-    });
-  }
-}
-
-function fitGraph(containerId) {
-  const cy = activeCytoscapeInstances[containerId];
-  if (cy) {
-    cy.fit(30);
-  }
-}
-
-// --- Inspector Modal for Nodes and Edges ---
-function openInspectorModal(title, contentHtml) {
-  const modal = document.getElementById('detailModal');
-  const titleEl = document.getElementById('modalFieldTitle');
-  const bodyEl = document.getElementById('modalDetailsBody');
-
-  if (titleEl) titleEl.textContent = title;
-  if (bodyEl) bodyEl.innerHTML = contentHtml;
-  if (modal) modal.classList.add('active');
-}
-
-function closeInspectorModal() {
-  const modal = document.getElementById('detailModal');
-  if (modal) modal.classList.remove('active');
-}
-
-function initModalListeners() {
-  const closeBtn = document.getElementById('modalCloseBtn');
-  const closeFooterBtn = document.getElementById('modalCloseBtnFooter');
-  const modal = document.getElementById('detailModal');
-
-  if (closeBtn) closeBtn.onclick = closeInspectorModal;
-  if (closeFooterBtn) closeFooterBtn.onclick = closeInspectorModal;
-  if (modal) {
-    modal.onclick = (e) => {
-      if (e.target === modal) closeInspectorModal();
-    };
-  }
-}
-
-function generateNodeInspectorHtml(node) {
-  let attrsHtml = '';
-  const masked = node.masked_attributes || node.attributes || {};
-  for (const [k, v] of Object.entries(masked)) {
-    attrsHtml += `
-      <tr>
-        <td style="font-weight:600; color:var(--text-secondary); padding:0.4rem 0.6rem;">${escapeHtml(k)}</td>
-        <td style="font-family:var(--font-mono); color:var(--text-primary); padding:0.4rem 0.6rem;">${escapeHtml(String(v))}</td>
-      </tr>
-    `;
-  }
-
-  return `
-    <div style="display:flex; flex-direction:column; gap:0.85rem;">
-      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-        <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold);">Entity: ${escapeHtml(node.entity_type || 'Unknown')}</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--text-secondary);">Source: ${escapeHtml(node.source_name || 'N/A')}</span>
-        <span class="badge badge-status-complete">Verified Node</span>
-      </div>
-
-      <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
-        Discovered entity representation in PrivSight technical graph. Key identifier: <code>${escapeHtml(node.id)}</code>.
-      </div>
-
-      <h4 style="font-size:0.88rem; font-weight:700; color:var(--text-primary); margin-top:0.4rem;">Masked Record Attributes</h4>
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); overflow:hidden;">
-        <table style="width:100%; font-size:0.78rem;">
-          <tbody>
-            ${attrsHtml || '<tr><td style="padding:0.75rem; color:var(--text-muted);">No explicit attributes recorded.</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function generateEdgeInspectorHtml(edge) {
-  return `
-    <div style="display:flex; flex-direction:column; gap:0.85rem;">
-      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-        <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold);">Cardinality: ${escapeHtml(edge.cardinality || 'Unknown')}</span>
-        <span class="badge" style="background:rgba(16,185,129,0.12); color:var(--color-success);">Status: ${escapeHtml(edge.verification_status || 'Verified')}</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--text-secondary);">Confidence: ${Math.round((edge.confidence_score || 1.0) * 100)}%</span>
-      </div>
-
-      <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary);">
-        ${escapeHtml(edge.source_label)} ➔ ${escapeHtml(edge.target_label)}
-      </div>
-
-      <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.85rem;">
-        <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.25rem;">Evidence & Provenance</div>
-        <div style="font-size:0.82rem; color:var(--text-primary); line-height:1.5;">
-          ${escapeHtml(edge.evidence || 'Verified referential connection.')}
-        </div>
-      </div>
-
-      <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.45;">
-        PrivSight verified this connection by inspecting database schemas, primary/foreign key constraints, and multi-format dataset intersections.
-      </div>
-    </div>
-  `;
-}
-
-// --- Lightweight Markdown Formatter ---
-function renderMarkdown(md) {
-  if (!md) return '';
-
-  let html = md
-    // Escape standard tags first for safety
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // Headings
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^# (.*$)/gim, '<h3>$1</h3>');
-
-  // Bold
-  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-
-  // Italics
-  html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
-
-  // Inline Code
-  html = html.replace(/`([^`]+)`/gim, '<code>$1</code>');
-
-  // Unordered list items
-  html = html.replace(/^\s*[-•]\s+(.*$)/gim, '<li>$1</li>');
-
-  // Numbered list items
-  html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
-
-  // Horizontal rules
-  html = html.replace(/^---$/gim, '<hr style="border:none; border-top:1px solid var(--border-subtle); margin:0.85rem 0;">');
-
-  // Paragraph breaks
-  html = html.replace(/\n\n/gim, '</p><p>');
-  html = '<p>' + html + '</p>';
-
-  // Wrap lists
-  html = html.replace(/<li>(.*?)(?=<li>|<\/p>|$)/gim, '<ul><li>$1</li></ul>');
-  html = html.replace(/<\/ul>\s*<ul>/gim, '');
-
-  return html;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

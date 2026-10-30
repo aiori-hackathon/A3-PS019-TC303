@@ -216,46 +216,9 @@
 
             <!-- Message Stream -->
             <div class="tracera-messages-stream" id="chatMessages">
-              
-              <!-- Initial Welcome Screen -->
-              <div class="tracera-welcome-card" id="welcomeHero">
-                <div class="tracera-welcome-icon">⚡</div>
-                <h1 class="tracera-welcome-title">TRACERA</h1>
-                <div class="tracera-welcome-tagline">Trace. Analyze. Understand.</div>
-                <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
-                  BY PRIVSIGHT · AI-Powered Relationship Intelligence Assistant
-                </div>
-                <p class="tracera-welcome-desc">
-                  Welcome to TRACERA. I am your specialized AI assistant inside PrivSight, ready to answer questions regarding your personal-data discovery inventory, evidence gap analysis, detection rules, and privacy compliance. (Advanced visual relationship graph topology and multi-hop link discovery are planned for Phase 2).
-                </p>
-
-                <div class="tracera-prompts-grid">
-                  <div class="tracera-prompt-card" onclick="suggestPrompt('What is PrivSight\'s methodology for personal data discovery and evidence inventory?')">
-                    <div class="tracera-prompt-icon">🔍</div>
-                    <div class="tracera-prompt-title">Discovery Methodology</div>
-                    <div class="tracera-prompt-sub">Learn how PrivSight discovers and categorizes personal data across your files and databases.</div>
-                  </div>
-
-                  <div class="tracera-prompt-card" onclick="suggestPrompt('How are confidence scores and Missing Proofs calculated in the inventory?')">
-                    <div class="tracera-prompt-icon">⚠️</div>
-                    <div class="tracera-prompt-title">Missing Proofs & Gaps</div>
-                    <div class="tracera-prompt-sub">Understand how technical evidence verification separates confirmed facts from missing proofs.</div>
-                  </div>
-
-                  <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the difference between direct personal identifiers and quasi-identifiers under GDPR.')">
-                    <div class="tracera-prompt-icon">🛡️</div>
-                    <div class="tracera-prompt-title">Direct vs Quasi-Identifiers</div>
-                    <div class="tracera-prompt-sub">Review compliance distinctions and privacy risk implications for sensitive data fields.</div>
-                  </div>
-
-                  <div class="tracera-prompt-card" onclick="suggestPrompt('How do detection rules scan database columns, CSVs, and unstructured files?')">
-                    <div class="tracera-prompt-icon">⚙️</div>
-                    <div class="tracera-prompt-title">Detection Rule Mechanics</div>
-                    <div class="tracera-prompt-sub">Explore how regex, entropy, and NLP heuristics evaluate PII candidate likelihood.</div>
-                  </div>
-                </div>
+              <div class="tracera-messages-inner" id="messagesInner">
+                <!-- Welcome Screen or Conversation Messages dynamically rendered here -->
               </div>
-
             </div>
 
             <!-- Bottom Message Input Box (Highest Priority Large Composer) -->

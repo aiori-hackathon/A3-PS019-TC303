@@ -2920,7 +2920,15 @@ tbody tr:hover {
   padding: 1.5rem 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+}
+
+.tracera-messages-inner {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 /* Hero / Empty State */
@@ -3013,139 +3021,267 @@ tbody tr:hover {
   color: var(--text-muted);
 }
 
-/* Chat Message Rows */
+/* Chat Message Rows - Standard ChatGPT / Claude Layout */
 .tracera-message-row {
+  width: 100%;
   display: flex;
-  gap: 0.85rem;
-  max-width: 100%;
 }
 
+/* USER MESSAGE: STRICT RIGHT ALIGNMENT */
 .tracera-message-row.user {
   justify-content: flex-end;
+  margin-left: auto;
 }
 
-.tracera-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.85rem;
-  flex-shrink: 0;
-}
-
-.tracera-message-row.assistant .tracera-avatar {
-  background: linear-gradient(135deg, var(--gold-rich) 0%, var(--orange-primary) 100%);
-  color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(212, 167, 44, 0.3);
-}
-
-.tracera-message-row.user .tracera-avatar {
-  background: var(--bg-elevated);
-  color: var(--accent-gold);
-  border: 1px solid var(--border-color);
-  order: 2;
-}
-
-.tracera-bubble {
-  max-width: 82%;
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  line-height: 1.6;
-}
-
-.tracera-message-row.user .tracera-bubble {
+.tracera-user-bubble {
+  max-width: 75%;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
-  border-bottom-right-radius: 2px;
-}
-
-.tracera-message-row.assistant .tracera-bubble {
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  border-bottom-left-radius: 2px;
+  border-radius: 18px 18px 4px 18px;
+  padding: 0.85rem 1.25rem;
   box-shadow: var(--shadow-sm);
-  width: 100%;
-}
-
-.tracera-bubble-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.65rem;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid var(--border-subtle);
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
-.tracera-author-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: var(--accent-gold);
+.tracera-user-text {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
-.tracera-author-tagline {
+.tracera-user-time {
   font-size: 0.68rem;
   color: var(--text-muted);
-  font-weight: 500;
-}
-
-.tracera-timestamp {
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  align-self: flex-end;
   font-family: var(--font-mono);
 }
 
-.tracera-bubble-content {
+/* ASSISTANT MESSAGE: STRICT LEFT ALIGNMENT */
+.tracera-message-row.assistant {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  margin-right: auto;
+  gap: 0.5rem;
+}
+
+.tracera-assistant-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tracera-assistant-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--gold-rich) 0%, var(--orange-primary) 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(212, 167, 44, 0.3);
+  flex-shrink: 0;
+}
+
+.tracera-assistant-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.tracera-assistant-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tracera-assistant-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: var(--accent-gold-soft);
+  padding: 0.12rem 0.45rem;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.tracera-assistant-time {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: 0.25rem;
+}
+
+.tracera-assistant-body {
+  width: 100%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.45rem;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+}
+
+/* Rich Markdown Content Formatting */
+.tracera-markdown-content {
+  font-size: 0.92rem;
+  line-height: 1.65;
   color: var(--text-primary);
   word-break: break-word;
 }
 
-.tracera-bubble-content h3 {
-  font-size: 0.95rem;
+.tracera-markdown-content h1,
+.tracera-markdown-content h2,
+.tracera-markdown-content h3 {
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--accent-gold);
-  margin-top: 0.85rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.tracera-markdown-content h1:first-child,
+.tracera-markdown-content h2:first-child,
+.tracera-markdown-content h3:first-child {
+  margin-top: 0;
+}
+
+.tracera-markdown-content h4,
+.tracera-markdown-content h5 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 1rem;
   margin-bottom: 0.4rem;
 }
 
-.tracera-bubble-content h4 {
-  font-size: 0.88rem;
+.tracera-markdown-content p {
+  margin-bottom: 0.85rem;
+  line-height: 1.65;
+}
+
+.tracera-markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.tracera-markdown-content ul,
+.tracera-markdown-content ol {
+  margin-top: 0.35rem;
+  margin-bottom: 0.85rem;
+  padding-left: 1.5rem;
+}
+
+.tracera-markdown-content li {
+  margin-bottom: 0.35rem;
+  line-height: 1.55;
+}
+
+.tracera-markdown-content strong {
   font-weight: 700;
   color: var(--text-primary);
-  margin-top: 0.65rem;
-  margin-bottom: 0.35rem;
 }
 
-.tracera-bubble-content p {
-  margin-bottom: 0.65rem;
+.tracera-markdown-content em {
+  font-style: italic;
+  color: var(--text-secondary);
 }
 
-.tracera-bubble-content ul, 
-.tracera-bubble-content ol {
-  margin-left: 1.25rem;
-  margin-bottom: 0.65rem;
-}
-
-.tracera-bubble-content li {
-  margin-bottom: 0.3rem;
-}
-
-.tracera-bubble-content code {
+.tracera-markdown-content code {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--accent-orange);
+}
+
+.tracera-markdown-content pre {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.15rem;
+  overflow-x: auto;
+  margin: 0.85rem 0;
+}
+
+.tracera-markdown-content pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.tracera-markdown-content blockquote {
+  border-left: 3px solid var(--accent-gold);
+  padding: 0.5rem 0.95rem;
+  margin: 0.85rem 0;
+  background: var(--bg-input);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.tracera-markdown-content table.tracera-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.82rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.tracera-markdown-content table.tracera-md-table th {
+  background: var(--bg-elevated);
+  padding: 0.65rem 0.85rem;
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.tracera-markdown-content table.tracera-md-table td {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+/* Assistant Footer Actions */
+.tracera-assistant-footer,
+.tracera-response-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.85rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tracera-response-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.tracera-response-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 /* Embedded Visual Graph Container */

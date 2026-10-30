@@ -172,12 +172,14 @@ class AIAssistant:
                 entity_focus = ent.title()
                 break
 
-        # Check for pronouns needing history resolution ("their", "them", "he", "she", "this person", "these tables")
-        has_pronoun = any(p in q_lower.split() for p in ["their", "they", "them", "his", "her", "this", "these", "it", "second", "first"])
-        if (not id_focus and not entity_focus) or has_pronoun:
-            if history:
-                # Look backwards through recent user/assistant turns
-                for msg in reversed(history[-4:]):
+        # Check for pronouns needing history resolution ("their", "them", "his", "her", "this person")
+        has_pronoun = any(
+            re.search(rf"\b{re.escape(p)}\b", q_lower)
+            for p in ["their", "them", "his", "her", "he", "she", "this person", "that entity", "these records"]
+        )
+        if has_pronoun and history:
+            # Look backwards through recent user/assistant turns only when pronoun is used
+            for msg in reversed(history[-4:]):
                     prev_id_match = id_pattern.search(msg.content)
                     if prev_id_match and not id_focus:
                         id_focus = prev_id_match.group(0).upper()
