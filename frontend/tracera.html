@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · TRACERA</title>
+  <meta name="description" content="TRACERA BY PRIVSIGHT — Trace. Analyze. Understand. AI-Powered Relationship Intelligence Assistant for discovering and explaining entity connections across your files and databases.">
+
+  <!-- Early Theme Detection to Prevent Flash of Wrong Theme -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <!-- Google Fonts & PrivSight Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+
+  <!-- Cytoscape.js for interactive relationship graphs -->
+  <script src="/static/vendor/cytoscape.min.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery & Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Missing Proof</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <a href="/tracera" class="nav-item active" id="navTracera">
+          <span class="nav-item-icon">⚡</span>
+          <span class="nav-item-label">TRACERA</span>
+          <span class="nav-badge" style="background: var(--accent-gold); color: #000; font-weight: 700;">AI</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports & Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Synthetic Benchmark</div>
+          <div>84 Labelled Fields · Multi-Class</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current" id="breadcrumbCurrent">TRACERA</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- System Status Pill -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">TRACERA AI Online</span>
+          </div>
+
+          <!-- Active Sources Count -->
+          <div style="display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-full); font-size: 0.75rem; color: var(--text-secondary);">
+            <span>📁</span>
+            <span id="activeSourcesCount">--</span>
+            <span>Sources Scanned</span>
+          </div>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Technical Evidence Only</span>
+        <span>TRACERA BY PRIVSIGHT: AI-powered relationship intelligence is grounded in verified database foreign keys, primary keys, and exact value overlaps. Personal data values are masked by default. Inferences require human review and do not constitute legal conclusions.</span>
+      </aside>
+
+      <!-- Main TRACERA Conversational Workspace -->
+      <main class="workspace-content" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+        
+        <div class="tracera-container">
+          
+          <!-- LEFT SIDEBAR: Conversation History & Controls -->
+          <aside class="tracera-sidebar">
+            <div class="tracera-sidebar-header">
+              <button class="tracera-btn-new-chat" id="btnNewChat" title="Start a new relationship exploration">
+                <span>➕</span>
+                <span>New Exploration</span>
+              </button>
+              
+              <div class="tracera-search-wrapper">
+                <span class="tracera-search-icon">🔍</span>
+                <input type="text" class="tracera-search-input" id="searchThreadsInput" placeholder="Search conversations...">
+              </div>
+            </div>
+
+            <div class="tracera-sidebar-title">Recent Investigations</div>
+            
+            <div class="tracera-threads-list" id="threadsList">
+              <div style="color: var(--text-muted); font-size: 0.8rem; padding: 1.5rem 1rem; text-align: center;">
+                Loading conversations...
+              </div>
+            </div>
+
+            <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); background: var(--bg-subtle); display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">TRACERA v2.0</span>
+              <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 700;">PrivSight Engine</span>
+            </div>
+          </aside>
+
+          <!-- MAIN CHAT AREA -->
+          <section class="tracera-chat-main">
+            
+            <!-- Top Chat Header Bar with TRACERA Branding & Format Chips -->
+            <div class="tracera-header-bar">
+              <div class="tracera-brand-lockup">
+                <div class="tracera-brand-badge">⚡</div>
+                <div class="tracera-brand-text">
+                  <div class="tracera-brand-row">
+                    <h2 class="tracera-brand-title">TRACERA</h2>
+                    <span class="tracera-brand-association">BY PRIVSIGHT</span>
+                  </div>
+                  <span class="tracera-brand-tagline">Trace. Analyze. Understand.</span>
+                </div>
+              </div>
+
+              <!-- Format Switcher Chips -->
+              <div class="tracera-format-chips">
+                <button class="tracera-chip active" data-format="text" onclick="setFormatPreference('text')">💬 Text (Default)</button>
+                <button class="tracera-chip" data-format="graph" onclick="setFormatPreference('graph')">🕸️ Graph</button>
+                <button class="tracera-chip" data-format="table" onclick="setFormatPreference('table')">📊 Table</button>
+                <button class="tracera-chip" data-format="timeline" onclick="setFormatPreference('timeline')">⏱️ Timeline</button>
+                <button class="tracera-chip" data-format="flowchart" onclick="setFormatPreference('flowchart')">🔀 Flowchart</button>
+                <button class="tracera-chip" data-format="step_by_step" onclick="setFormatPreference('step_by_step')">📝 Steps</button>
+                <button class="tracera-chip" data-format="structured_report" onclick="setFormatPreference('structured_report')">📋 Report</button>
+              </div>
+            </div>
+
+            <!-- Optional Data Source Filter Pills -->
+            <div style="padding: 0.45rem 1.25rem; background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.5rem; overflow-x: auto;" id="sourcePillTray">
+              <!-- Dynamically populated with loaded sources -->
+            </div>
+
+            <!-- Message Stream -->
+            <div class="tracera-messages-stream" id="chatMessages">
+              
+              <!-- Initial Welcome Screen -->
+              <div class="tracera-welcome-card" id="welcomeHero">
+                <div class="tracera-welcome-icon">⚡</div>
+                <h1 class="tracera-welcome-title">TRACERA</h1>
+                <div class="tracera-welcome-tagline">Trace. Analyze. Understand.</div>
+                <p class="tracera-welcome-desc">
+                  AI-Powered Relationship Intelligence Assistant for PrivSight. Ask natural language questions to uncover connections between individuals, organizations, email records, shared identifiers, and technical evidence across your scanned files and databases.
+                </p>
+
+                <div class="tracera-prompts-grid">
+                  <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the relationship between customers and orders graphically with an interactive graph.')">
+                    <div class="tracera-prompt-icon">🕸️</div>
+                    <div class="tracera-prompt-title">Explain Graphically</div>
+                    <div class="tracera-prompt-sub">Explore customer and order connections with interactive Cytoscape nodes and edges.</div>
+                  </div>
+
+                  <div class="tracera-prompt-card" onclick="suggestPrompt('What records and entities connect to customer C001?')">
+                    <div class="tracera-prompt-icon">👤</div>
+                    <div class="tracera-prompt-title">Trace Entity C001</div>
+                    <div class="tracera-prompt-sub">Find all related transactions, orders, payments, and multi-hop data links.</div>
+                  </div>
+
+                  <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the cross-dataset relationships in a structured table.')">
+                    <div class="tracera-prompt-icon">📊</div>
+                    <div class="tracera-prompt-title">Tabular Breakdown</div>
+                    <div class="tracera-prompt-sub">Generate a structured table detailing source fields, targets, cardinality, and matching rows.</div>
+                  </div>
+
+                  <div class="tracera-prompt-card" onclick="suggestPrompt('Give me a chronological timeline of data events and transactions.')">
+                    <div class="tracera-prompt-icon">⏱️</div>
+                    <div class="tracera-prompt-title">Chronological Timeline</div>
+                    <div class="tracera-prompt-sub">Trace the sequence of orders and transactions with real timestamps and status flags.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Bottom Message Input Box -->
+            <div class="tracera-input-tray">
+              <div class="tracera-input-box">
+                <textarea 
+                  class="tracera-textarea" 
+                  id="chatInput" 
+                  rows="1" 
+                  placeholder="Ask TRACERA to trace entities, explain relationships, or generate graphs..."
+                  aria-label="Ask TRACERA a question"
+                ></textarea>
+                <button class="tracera-send-btn" id="btnSendChat" title="Send message to TRACERA" aria-label="Send">
+                  <span>➤</span>
+                </button>
+              </div>
+
+              <div class="tracera-input-meta">
+                <span>Press <strong>Enter</strong> to send · <strong>Shift+Enter</strong> for new line</span>
+                <span>Supported: Text · Graphs · Tables · Timelines · Flowcharts · Reports</span>
+              </div>
+            </div>
+
+          </section>
+
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Detail Inspector Modal (For clicking nodes or edges) -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--accent-gold);" id="modalFieldTitle">Relationship Evidence Inspector</h3>
+        <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer; line-height: 1;">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary-gold" id="modalCloseBtnFooter">Close Inspector</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Dedicated TRACERA Controller Script -->
+  <script src="/static/tracera.js"></script>
+</body>
+</html>

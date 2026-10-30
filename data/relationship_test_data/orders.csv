@@ -1,0 +1,11 @@
+order_id,customer_id,order_date,total_amount,currency,order_status,shipping_address
+ORD-101,C001,2023-11-01,249.99,USD,COMPLETED,"123 Broadway, New York, NY"
+ORD-102,C001,2023-11-15,89.50,USD,COMPLETED,"123 Broadway, New York, NY"
+ORD-103,C001,2023-12-05,410.00,USD,PROCESSING,"123 Broadway, New York, NY"
+ORD-104,C002,2023-11-10,1250.00,USD,COMPLETED,"456 Michigan Ave, Chicago, IL"
+ORD-105,C003,2023-11-12,75.20,EUR,COMPLETED,"Friedrichstrasse 12, Berlin"
+ORD-106,C004,2023-11-20,320.00,EUR,DELIVERED,"Gran Via 44, Madrid"
+ORD-107,C005,2023-11-28,890.00,USD,SHIPPED,"789 Market St, San Francisco, CA"
+ORD-108,C008,2023-12-01,150.00,GBP,COMPLETED,"10 Downing Mews, London"
+ORD-109,C999,2023-12-02,99.00,USD,FAILED,Unknown Address
+ORD-110,,2023-12-03,45.00,USD,DRAFT,Guest Checkout

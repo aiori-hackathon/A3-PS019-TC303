@@ -1,0 +1,5 @@
+department_id,department_name,location_code,cost_center,head_of_department
+D01,Engineering,Bldg-A-Fl3,CC-1010,Alex Mercer
+D02,Human Resources,Bldg-A-Fl1,CC-2020,Sarah Connor
+D03,Finance & Accounting,Bldg-B-Fl2,CC-3030,Marcus Wright
+D04,Advanced Research,Lab-C,CC-4040,Dr. Emmett Brown

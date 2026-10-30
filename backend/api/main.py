@@ -55,6 +55,7 @@ from backend.parsers import (
     UnsupportedFormatError,
     get_parser_registry,
 )
+from backend.relationships.routes import relationships_router
 from backend.scanner.scanner_service import ScannerService
 
 logging.basicConfig(
@@ -126,6 +127,9 @@ async def add_no_cache_headers(request: Request, call_next):
 
 # Authentication router for user registration, sessions, and login
 app.include_router(auth_router)
+
+# AI Relationship Intelligence Assistant router
+app.include_router(relationships_router)
 
 
 # ---------------------------------------------------------------------------
@@ -1291,6 +1295,31 @@ if FRONTEND_DIR.exists():
     def serve_frontend_reports(request: Request):
         """Serves the reports & downloads page (protected)."""
         return _require_auth_page(request, "reports.html")
+
+    @app.get("/tracera", include_in_schema=False)
+    @app.get("/tracera.html", include_in_schema=False)
+    def serve_frontend_tracera(request: Request):
+        """Serves the dedicated TRACERA AI Relationship Intelligence Assistant page (protected)."""
+        return _require_auth_page(request, "tracera.html")
+
+    @app.get("/relationship-explorer", include_in_schema=False)
+    @app.get("/relationship-explorer.html", include_in_schema=False)
+    def serve_frontend_relationship_explorer(request: Request):
+        """Backwards-compatible route redirecting to TRACERA."""
+        return _require_auth_page(request, "tracera.html")
+
+    @app.get("/style.css", include_in_schema=False)
+    def serve_direct_style_css():
+        """Direct fallback route for style.css to prevent 404s when referenced without /static."""
+        return FileResponse(str(FRONTEND_DIR / "style.css"), media_type="text/css")
+
+    @app.get("/vendor/{path:path}", include_in_schema=False)
+    def serve_direct_vendor(path: str):
+        """Direct fallback route for vendor assets to prevent 404s when referenced without /static."""
+        target = FRONTEND_DIR / "vendor" / path
+        if target.exists():
+            return FileResponse(str(target))
+        return JSONResponse(status_code=404, content={"detail": f"Vendor asset '{path}' not found"})
 
     @app.get("/404", include_in_schema=False)
     @app.get("/404.html", include_in_schema=False)

@@ -1,0 +1,10 @@
+employee_id,full_name,department_id,job_title,work_email,phone_number,annual_salary
+E101,Alice Jenkins,D01,Senior Software Engineer,alice.jenkins@company.example,+1-555-0201,125000
+E102,Bob Vance,D01,DevOps Specialist,bob.vance@company.example,+1-555-0202,110000
+E103,Carol Danvers,D01,QA Automation Lead,carol.danvers@company.example,+1-555-0203,105000
+E104,Daniel Craig,D02,HR Talent Lead,daniel.craig@company.example,+1-555-0204,92000
+E105,Emma Watson,D02,People Operations Partner,emma.watson@company.example,+1-555-0205,85000
+E106,Frank Castle,D03,Chief Financial Controller,frank.castle@company.example,+1-555-0206,145000
+E107,Grace Hopper,D03,Senior Payroll Auditor,grace.hopper@company.example,+1-555-0207,98000
+E108,Henry Ford,,External Contractor,henry.contractor@partner.example,+1-555-0208,80000
+E109,Irene Adler,D99,Risk Consultant,irene.adler@company.example,+1-555-0209,115000

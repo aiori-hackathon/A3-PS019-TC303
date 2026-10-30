@@ -1,0 +1,11 @@
+customer_id,full_name,email,phone,city,country,registration_date
+C001,John Smith,john.smith@example.com,+1-555-0101,New York,USA,2023-01-15
+C002,Elena Rostova,elena.rostova@example.org,+1-555-0102,Chicago,USA,2023-02-20
+C003,Klaus Weber,klaus.weber@techfirm.example,+49-30-123456,Berlin,Germany,2023-03-10
+C004,Maria Garcia,maria.garcia@globalcorp.example,+34-91-987654,Madrid,Spain,2023-04-05
+C005,David Kim,david.kim@samplecorp.net,+1-555-0105,San Francisco,USA,2023-05-12
+C006,Amina Yusuf,amina.yusuf@africatech.example,+254-20-555123,Nairobi,Kenya,2023-06-18
+C007,Chen Wei,chen.wei@asiapartner.org,+86-21-654321,Shanghai,China,2023-07-22
+C008,John Smith,john.smith.uk@britishmail.example,+44-20-794609,London,UK,2023-08-30
+C009,Sophie Laurent,sophie.laurent@parismail.fr,+33-1-426855,Paris,France,2023-09-14
+C010,Lucas Silva,lucas.silva@brasilpost.example,+55-11-987654,Sao Paulo,Brazil,2023-10-01

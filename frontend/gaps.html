@@ -66,6 +66,12 @@
           <span class="nav-badge" id="sidebarGapsBadge">--</span>
         </a>
 
+        <a href="/tracera" class="nav-item" id="navTracera">
+          <span class="nav-item-icon">⚡</span>
+          <span class="nav-item-label">TRACERA</span>
+          <span class="nav-badge" style="background: var(--accent-gold); color: #000; font-weight: 700;">AI</span>
+        </a>
+
         <div class="nav-section-label" style="margin-top: 0.85rem;">Governance & Quality</div>
 
         <a href="/evaluation" class="nav-item" id="navEvaluation">
@@ -212,6 +218,32 @@
               <!-- Pagination Controls -->
               <div class="pagination-bar" id="gapsPagination"></div>
 
+            </div>
+          </div>
+
+          <!-- TRACERA AI Assistant Integration: Immediately Below Missing Proof Section -->
+          <div class="card" id="aiAssistantMissingProofBanner" style="margin-top: 1.5rem; border: 1px solid var(--accent-gold); background: linear-gradient(135deg, rgba(212, 167, 44, 0.08) 0%, rgba(249, 115, 22, 0.08) 100%);">
+            <div class="card-body" style="padding: 1.25rem 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-gold), var(--orange-primary)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; box-shadow: 0 4px 14px rgba(212, 167, 44, 0.35); flex-shrink: 0;">
+                  ⚡
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
+                    <h4 style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0;">TRACERA</h4>
+                    <span class="badge" style="background: rgba(212, 167, 44, 0.2); color: var(--accent-gold); font-size: 0.68rem; font-weight: 700;">BY PRIVSIGHT</span>
+                    <span style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 700;">Trace. Analyze. Understand.</span>
+                  </div>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">
+                    Unsure why proof is missing? Ask TRACERA to uncover indirect linkages, associated documents, entity dependencies, and evidence provenance paths.
+                  </p>
+                </div>
+              </div>
+              <a href="/tracera" class="btn btn-primary-orange" id="btnLaunchAIAssistant" style="text-decoration: none; padding: 0.7rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);">
+                <span>⚡</span>
+                <span>Launch TRACERA</span>
+                <span>→</span>
+              </a>
             </div>
           </div>
         </section>
