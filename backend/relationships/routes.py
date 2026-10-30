@@ -135,6 +135,15 @@ def delete_conversation(
     return {"status": "success", "message": "Conversation deleted successfully"}
 
 
+@relationships_router.delete("/conversations", response_model=Dict[str, Any])
+def clear_all_conversations(
+    user: UserResponse = Depends(get_authenticated_user),
+):
+    """Delete all conversations and message history for the current user."""
+    count = chat_service.clear_all_conversations(user.id)
+    return {"status": "success", "deleted_count": count, "message": "All conversations cleared successfully"}
+
+
 @relationships_router.post("/chat", response_model=RelationshipReport)
 def chat_with_assistant(
     payload: ChatQueryRequest,

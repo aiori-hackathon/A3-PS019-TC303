@@ -413,10 +413,12 @@ const ChatMessageList = {
   },
 
   scrollToBottom() {
-    const scrollContainer = document.getElementById('chatMessages');
-    if (scrollContainer) {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      const scrollContainer = document.getElementById('chatMessages');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    });
   }
 };
 
@@ -445,13 +447,14 @@ const MessageComposer = {
       const val = this.inputEl.value.trim();
       this.sendBtnEl.disabled = isSubmitting || val.length === 0;
 
-      // Auto-expand textarea between 110px and 250px
+      // Auto-expand textarea between 110px and 260px
       this.inputEl.style.height = 'auto';
-      const targetHeight = Math.max(110, Math.min(this.inputEl.scrollHeight, 250));
+      const targetHeight = Math.max(110, Math.min(this.inputEl.scrollHeight, 260));
       this.inputEl.style.height = targetHeight + 'px';
     };
 
     this.inputEl.addEventListener('input', updateState);
+    this.inputEl.addEventListener('focus', updateState);
 
     // Enter sends, Shift+Enter makes newline
     this.inputEl.addEventListener('keydown', (e) => {
@@ -639,6 +642,9 @@ async function selectConversation(convId) {
   currentConversationId = convId;
   localStorage.setItem('tracera-active-conv', convId);
 
+  // Close the history drawer when a conversation is selected
+  toggleHistorySidebar(false);
+
   // Highlight active thread item in sidebar
   document.querySelectorAll('.tracera-thread-item').forEach(el => el.classList.remove('active'));
   const activeEl = document.getElementById(`thread-${convId}`);
@@ -758,9 +764,35 @@ async function deleteThread(convId) {
   }
 }
 
+async function clearAllHistory() {
+  if (!confirm('Are you sure you want to clear all conversation history? This will delete all saved investigations.')) return;
+
+  try {
+    const res = await fetch('/api/relationships/conversations', {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      currentConversationId = null;
+      localStorage.removeItem('tracera-active-conv');
+      const titleEl = document.getElementById('activeConvTitle');
+      if (titleEl) titleEl.textContent = 'New Exploration';
+      allConversations = [];
+      renderThreads([]);
+      WelcomeScreen.show();
+      MessageComposer.clear();
+      MessageComposer.focus();
+    }
+  } catch (err) {
+    console.error('Failed to clear all conversations:', err);
+  }
+}
+
 function suggestPrompt(text) {
   if (MessageComposer.inputEl) {
     MessageComposer.inputEl.value = text;
+    if (MessageComposer.sendBtnEl) {
+      MessageComposer.sendBtnEl.disabled = false;
+    }
     sendChatMessage();
   }
 }
@@ -1005,11 +1037,133 @@ function initModalListeners() {
 // ==========================================
 // 10. APP INITIALIZATION & THEME
 // ==========================================
+function toggleHistorySidebar(forceState) {
+  const container = document.querySelector('.tracera-container');
+  if (!container) return;
+  const isCurrentlyOpen = container.classList.contains('history-open');
+  const newState = (forceState !== undefined) ? forceState : !isCurrentlyOpen;
+  
+  if (newState) {
+    container.classList.add('history-open');
+    sessionStorage.setItem('tracera-history-open', 'true');
+  } else {
+    container.classList.remove('history-open');
+    sessionStorage.setItem('tracera-history-open', 'false');
+  }
+}
+window.toggleHistorySidebar = toggleHistorySidebar;
+
+function initHistoryDrawer() {
+  const toggleBtn = document.getElementById('btnToggleHistory');
+  const closeBtn = document.getElementById('btnCloseSidebar');
+  const backdrop = document.getElementById('tracerDrawerBackdrop');
+  const resizeHandle = document.getElementById('tracerResizeHandle');
+  const sidebar = document.getElementById('traceraSidebar');
+
+  // Toggle button in header
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleHistorySidebar();
+    });
+  }
+
+  // Close button inside drawer header
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleHistorySidebar(false);
+    });
+  }
+
+  // Backdrop click closes drawer
+  if (backdrop) {
+    backdrop.addEventListener('click', () => {
+      toggleHistorySidebar(false);
+    });
+  }
+
+  // --- Draggable Resize Handle Logic ---
+  if (resizeHandle && sidebar) {
+    let isResizing = false;
+    const container = document.querySelector('.tracera-container');
+    const MIN_WIDTH = 240;
+    const MAX_WIDTH_PX = 500;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      resizeHandle.classList.add('resizing');
+      if (container) container.classList.add('resizing-active');
+      document.body.style.cursor = 'col-resize';
+
+      const onMouseMove = (e) => {
+        if (!isResizing) return;
+        const maxW = Math.min(MAX_WIDTH_PX, window.innerWidth * 0.45);
+        let newWidth = Math.max(MIN_WIDTH, Math.min(e.clientX, maxW));
+        sidebar.style.width = newWidth + 'px';
+      };
+
+      const onMouseUp = () => {
+        isResizing = false;
+        resizeHandle.classList.remove('resizing');
+        if (container) container.classList.remove('resizing-active');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    // Touch support for mobile
+    resizeHandle.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      resizeHandle.classList.add('resizing');
+      if (container) container.classList.add('resizing-active');
+
+      const onTouchMove = (e) => {
+        if (!isResizing) return;
+        const touch = e.touches[0];
+        const maxW = Math.min(MAX_WIDTH_PX, window.innerWidth * 0.45);
+        let newWidth = Math.max(MIN_WIDTH, Math.min(touch.clientX, maxW));
+        sidebar.style.width = newWidth + 'px';
+      };
+
+      const onTouchEnd = () => {
+        isResizing = false;
+        resizeHandle.classList.remove('resizing');
+        if (container) container.classList.remove('resizing-active');
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+      };
+
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('touchend', onTouchEnd);
+    });
+  }
+
+  // Requirement: Closed by default and slides in when requested
+  const savedState = sessionStorage.getItem('tracera-history-open');
+  if (savedState === 'true') {
+    toggleHistorySidebar(true);
+  } else {
+    toggleHistorySidebar(false);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   initThemeToggle();
   initSearchFilter();
   initModalListeners();
+  initHistoryDrawer();
   MessageComposer.init(sendChatMessage);
+  const clearBtn = document.getElementById('btnClearAllHistory');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearAllHistory);
+  }
   await loadSources();
   await loadConversations();
 });

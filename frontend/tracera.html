@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=4">
 
   <!-- Cytoscape.js for interactive relationship graphs -->
   <script src="/static/vendor/cytoscape.min.js"></script>
@@ -161,13 +161,22 @@
         
         <div class="tracera-container">
           
-          <!-- LEFT SIDEBAR: Conversation History & Controls -->
-          <aside class="tracera-sidebar">
+          <!-- Drawer Backdrop Overlay (closes drawer on click) -->
+          <div class="tracera-drawer-backdrop" id="tracerDrawerBackdrop"></div>
+          
+          <!-- LEFT SIDEBAR: Conversation History & Controls (Sliding Drawer) -->
+          <aside class="tracera-sidebar" id="traceraSidebar">
+            <div class="tracera-resize-handle" id="tracerResizeHandle"></div>
             <div class="tracera-sidebar-header">
-              <button class="tracera-btn-new-chat" id="btnNewChat" title="Start a new relationship exploration">
-                <span>➕</span>
-                <span>New Exploration</span>
-              </button>
+              <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+                <button class="tracera-btn-new-chat" id="btnNewChat" title="Start a new relationship exploration" style="flex: 1;">
+                  <span>➕</span>
+                  <span>New Exploration</span>
+                </button>
+                <button class="tracera-action-btn" id="btnCloseSidebar" title="Close conversation history" aria-label="Close conversation history" style="padding: 0.55rem 0.65rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-elevated); cursor: pointer; color: var(--text-muted); line-height: 1;">
+                  ✕
+                </button>
+              </div>
               
               <div class="tracera-search-wrapper">
                 <span class="tracera-search-icon">🔍</span>
@@ -175,7 +184,13 @@
               </div>
             </div>
 
-            <div class="tracera-sidebar-title">Recent Investigations</div>
+            <div class="tracera-sidebar-title" style="display: flex; justify-content: space-between; align-items: center; padding-right: 0.85rem;">
+              <span>Recent Investigations</span>
+              <button class="tracera-action-btn delete" id="btnClearAllHistory" title="Clear all conversation history" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-elevated); cursor: pointer; color: var(--text-muted); transition: all 0.2s ease;">
+                <span>🗑️</span>
+                <span>Clear</span>
+              </button>
+            </div>
             
             <div class="tracera-threads-list" id="threadsList">
               <div style="color: var(--text-muted); font-size: 0.8rem; padding: 1.5rem 1rem; text-align: center;">
@@ -206,10 +221,10 @@
               </div>
 
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-elevated); padding: 0.35rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                  <span style="color: var(--accent-gold); font-size: 0.75rem;">💬</span>
+                <button class="tracera-conv-pill-btn" id="btnToggleHistory" title="Toggle Conversation History" aria-label="Toggle Conversation History">
+                  <span style="color: var(--accent-gold); font-size: 0.85rem;">💬</span>
                   <span id="activeConvTitle" style="font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">New Exploration</span>
-                </div>
+                </button>
                 <span class="badge" style="background: var(--accent-gold-soft); color: var(--accent-gold); font-size: 0.72rem; font-weight: 700;">Phase 1: AI Chat</span>
               </div>
             </div>
@@ -221,23 +236,26 @@
               </div>
             </div>
 
-            <!-- Bottom Message Input Box (Highest Priority Large Composer) -->
+            <!-- Bottom Message Input Box (Large Dark Rectangular AI Chat Composer) -->
             <div class="tracera-input-tray">
               <div class="tracera-composer-wrapper">
-                <div class="tracera-input-box">
+                <div class="tracera-input-box" id="composerCard">
                   <textarea 
                     class="tracera-textarea" 
                     id="chatInput" 
                     placeholder="Ask TRACERA about personal-data discovery, evidence inventory, detection rules, or privacy governance..."
                     aria-label="Ask TRACERA a question"
                   ></textarea>
+
                   <div class="tracera-input-bottom-bar">
                     <div class="tracera-input-hint">
-                      <span>⚡</span>
+                      <span class="hint-icon">⚡</span>
                       <span>Press <strong>Enter</strong> to send · <strong>Shift + Enter</strong> for new line</span>
                     </div>
                     <button class="tracera-send-btn" id="btnSendChat" title="Send message to TRACERA" aria-label="Send message" disabled>
-                      <span>➤</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -278,6 +296,6 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Dedicated TRACERA Controller Script -->
-  <script src="/static/tracera.js"></script>
+  <script src="/static/tracera.js?v=4"></script>
 </body>
 </html>

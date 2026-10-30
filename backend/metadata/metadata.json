@@ -10,6 +10,53 @@
     "not_mapped": "Discovered candidate fields with no metadata entry in this configuration"
   },
   "metadata": [
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"email","purpose":"Customer account communication and transactional notifications","retention_period":"2 years after account closure","metadata_owner":"Customer Operations","notice_version":"v2.1","notes":"Covered by customer sign-up privacy notice v2.1"},
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"phone","purpose":"Customer support callbacks and service verification","retention_period":"2 years after account closure","metadata_owner":"Customer Operations","notice_version":"v2.1","notes":null},
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"date_of_birth","purpose":"Age verification and age-appropriate service delivery","retention_period":"Duration of account plus 1 year","metadata_owner":"Compliance Team","notice_version":"v2.1","notes":"Required for age-restricted product categories"},
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"postal_code","purpose":"Regional service delivery and order fulfilment routing","retention_period":"3 years","metadata_owner":"Logistics","notice_version":"v2.0","notes":null},
+
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"full_name","purpose":"Account identification and customer correspondence","retention_period":null,"metadata_owner":"Customer Operations","notice_version":"v2.1","notes":"EVIDENCE GAP — Retention period under review by Data Governance team"},
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"city","purpose":"Regional analytics and logistics optimisation","retention_period":null,"metadata_owner":"Analytics","notice_version":null,"notes":"EVIDENCE GAP — Retention not yet declared"},
+
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"state","purpose":null,"retention_period":"2 years","metadata_owner":"Logistics","notice_version":null,"notes":"EVIDENCE GAP — Purpose declaration pending internal review"},
+
+    {"source_type":"CSV","source_name":"customers.csv","field_name":"country","purpose":null,"retention_period":null,"metadata_owner":"Data Governance","notice_version":null,"notes":"EVIDENCE GAP — Both purpose and retention under review"},
+
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"email","purpose":"Internal communications, IT system access management and HR correspondence","retention_period":"Duration of employment plus 3 years","metadata_owner":"HR Department","notice_version":"v1.4","notes":"HR Employee Privacy Notice v1.4"},
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"salary","purpose":"Payroll processing and compensation administration","retention_period":"7 years (statutory financial records requirement)","metadata_owner":"Finance / Payroll","notice_version":"v1.4","notes":"Statutory retention applies"},
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"health_insurance_id","purpose":"Employee health benefits administration and insurance claims processing","retention_period":"Duration of employment plus 5 years","metadata_owner":"HR Department","notice_version":"v1.4","notes":"Sensitive category data — access restricted to HR and Benefits team"},
+
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"employee_name","purpose":"HR records management and payroll identification","retention_period":null,"metadata_owner":"HR Department","notice_version":"v1.4","notes":"EVIDENCE GAP — Retention schedule not yet formalised"},
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"bank_account","purpose":"Salary disbursement via payroll system","retention_period":null,"metadata_owner":"Finance / Payroll","notice_version":"v1.4","notes":"EVIDENCE GAP — Retention period to be confirmed with legal"},
+
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"phone","purpose":null,"retention_period":"Duration of employment plus 1 year","metadata_owner":"HR Department","notice_version":null,"notes":"EVIDENCE GAP — Purpose declaration not yet submitted by HR"},
+
+    {"source_type":"CSV","source_name":"employees.csv","field_name":"city","purpose":null,"retention_period":null,"metadata_owner":"HR Operations","notice_version":null,"notes":"EVIDENCE GAP — Both purpose and retention missing"},
+
+    {"source_type":"CSV","source_name":"transactions.csv","field_name":"billing_email","purpose":"Transaction notification, receipt delivery and order confirmation","retention_period":"3 years","metadata_owner":"E-Commerce Operations","notice_version":"v2.1","notes":null},
+    {"source_type":"CSV","source_name":"transactions.csv","field_name":"amount","purpose":"Financial transaction records, audit trail and dispute resolution","retention_period":"7 years (statutory financial records)","metadata_owner":"Finance","notice_version":"v2.0","notes":"Statutory retention applies"},
+    {"source_type":"CSV","source_name":"transactions.csv","field_name":"card_last4","purpose":"Payment reference for dispute resolution and customer service identification","retention_period":"5 years","metadata_owner":"Finance","notice_version":"v2.0","notes":"Only last-4 digits stored; full card number is not retained"},
+
+    {"source_type":"CSV","source_name":"transactions.csv","field_name":"billing_city","purpose":"Delivery logistics and address validation","retention_period":null,"metadata_owner":"Logistics","notice_version":null,"notes":"EVIDENCE GAP — Retention not yet declared"},
+
+    {"source_type":"CSV","source_name":"transactions.csv","field_name":"billing_country","purpose":null,"retention_period":"3 years","metadata_owner":"Compliance Team","notice_version":null,"notes":"EVIDENCE GAP — Purpose entry not yet submitted by business owner"},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:customers","field_name":"email","purpose":"Customer account communication and transactional notifications","retention_period":"2 years after account closure","metadata_owner":"Customer Operations","notice_version":"v2.1","notes":"SQL operational database mirror of CSV source metadata"},
+    {"source_type":"SQL","source_name":"privacy_demo.db:customers","field_name":"date_of_birth","purpose":"Age verification stored in operational database","retention_period":"Duration of account plus 1 year","metadata_owner":"Compliance Team","notice_version":"v2.1","notes":null},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:customers","field_name":"full_name","purpose":"Account identification in operational database","retention_period":null,"metadata_owner":"Customer Operations","notice_version":null,"notes":"EVIDENCE GAP — Retention schedule not separately declared for SQL source"},
+    {"source_type":"SQL","source_name":"privacy_demo.db:customers","field_name":"phone","purpose":"Customer contact retrieval from operational database","retention_period":null,"metadata_owner":"Customer Operations","notice_version":null,"notes":"EVIDENCE GAP — Retention not declared for SQL-stored copy"},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:customers","field_name":"country","purpose":null,"retention_period":null,"metadata_owner":"Database Administration","notice_version":null,"notes":"EVIDENCE GAP — Both purpose and retention missing in SQL record"},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:employees","field_name":"salary","purpose":"Payroll computation from operational HR database","retention_period":"7 years (statutory)","metadata_owner":"Finance / Payroll","notice_version":"v1.4","notes":null},
+    {"source_type":"SQL","source_name":"privacy_demo.db:employees","field_name":"health_insurance_id","purpose":"Benefits administration — operational database lookup","retention_period":"Duration of employment plus 5 years","metadata_owner":"HR Department","notice_version":"v1.4","notes":"Sensitive category — restricted access"},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:employees","field_name":"email","purpose":"Internal IT access and HR communications from SQL system","retention_period":null,"metadata_owner":"IT / HR","notice_version":null,"notes":"EVIDENCE GAP — Retention period not yet declared for SQL-stored copy"},
+    {"source_type":"SQL","source_name":"privacy_demo.db:employees","field_name":"employee_name","purpose":"HR record identification in operational database","retention_period":null,"metadata_owner":"HR Department","notice_version":null,"notes":"EVIDENCE GAP — Retention not declared"},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:transactions","field_name":"amount","purpose":"Financial transaction records in operational database","retention_period":"7 years (statutory)","metadata_owner":"Finance","notice_version":"v2.0","notes":null},
+
+    {"source_type":"SQL","source_name":"privacy_demo.db:transactions","field_name":"billing_email","purpose":null,"retention_period":"3 years","metadata_owner":"E-Commerce Operations","notice_version":null,"notes":"EVIDENCE GAP — Purpose entry missing for SQL-stored copy"}
   ]
 }
-

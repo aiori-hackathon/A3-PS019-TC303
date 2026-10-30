@@ -292,3 +292,15 @@ class ChatPersistenceService:
                 return cur.rowcount > 0
         finally:
             conn.close()
+
+    def clear_all_conversations(self, user_id: int) -> int:
+        conn = self._conn()
+        try:
+            with conn:
+                cur = conn.execute(
+                    "DELETE FROM ai_conversations WHERE user_id = ?",
+                    (user_id,),
+                )
+                return cur.rowcount
+        finally:
+            conn.close()
