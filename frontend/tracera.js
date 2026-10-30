@@ -93,7 +93,7 @@ async function loadSources() {
 }
 
 // --- Conversations List & Search Filter ---
-async function loadConversations() {
+async function loadConversations(autoSelect = true) {
   const listEl = document.getElementById('threadsList');
   if (!listEl) return;
 
@@ -106,9 +106,17 @@ async function loadConversations() {
     allConversations = await res.json() || [];
     renderThreads(allConversations);
 
-    // If we have an active conversation, keep it active; otherwise default to newest if exists
-    if (!currentConversationId && allConversations.length > 0) {
-      await selectConversation(allConversations[0].id);
+    if (autoSelect) {
+      const savedId = localStorage.getItem('tracera-active-conv');
+      const targetId = (savedId && allConversations.find(c => c.id === savedId))
+        ? savedId
+        : (allConversations.length > 0 ? allConversations[0].id : null);
+
+      if (targetId) {
+        await selectConversation(targetId);
+      } else {
+        showWelcomeHero();
+      }
     }
   } catch (err) {
     console.error('Failed to load conversations:', err);
@@ -164,8 +172,11 @@ function initSearchFilter() {
   });
 }
 
+let lastUserMessage = '';
+
 async function selectConversation(convId) {
   currentConversationId = convId;
+  localStorage.setItem('tracera-active-conv', convId);
 
   // Highlight active thread item in sidebar
   document.querySelectorAll('.tracera-thread-item').forEach(el => el.classList.remove('active'));
@@ -184,6 +195,9 @@ async function selectConversation(convId) {
     }
     const detail = await res.json();
     container.innerHTML = '';
+
+    const titleEl = document.getElementById('activeConvTitle');
+    if (titleEl) titleEl.textContent = detail.title || 'Conversation';
 
     if (!detail.messages || detail.messages.length === 0) {
       showWelcomeHero();
@@ -219,10 +233,16 @@ async function createNewConversation() {
     if (!res.ok) return;
     const newConv = await res.json();
     currentConversationId = newConv.id;
-    await loadConversations();
+    localStorage.setItem('tracera-active-conv', newConv.id);
+    const titleEl = document.getElementById('activeConvTitle');
+    if (titleEl) titleEl.textContent = newConv.title || 'New Exploration';
+    await loadConversations(false);
     showWelcomeHero();
     const input = document.getElementById('chatInput');
-    if (input) input.focus();
+    if (input) {
+      input.focus();
+      input.style.height = '110px';
+    }
   } catch (err) {
     console.error('Failed to create new conversation:', err);
   }
@@ -239,7 +259,11 @@ async function renameThread(convId) {
       body: JSON.stringify({ title: newTitle.trim() }),
     });
     if (res.ok) {
-      await loadConversations();
+      if (currentConversationId === convId) {
+        const titleEl = document.getElementById('activeConvTitle');
+        if (titleEl) titleEl.textContent = newTitle.trim();
+      }
+      await loadConversations(false);
     }
   } catch (err) {
     console.error('Failed to rename conversation:', err);
@@ -256,9 +280,12 @@ async function deleteThread(convId) {
     if (res.ok) {
       if (currentConversationId === convId) {
         currentConversationId = null;
+        localStorage.removeItem('tracera-active-conv');
+        const titleEl = document.getElementById('activeConvTitle');
+        if (titleEl) titleEl.textContent = 'New Exploration';
         showWelcomeHero();
       }
-      await loadConversations();
+      await loadConversations(false);
     }
   } catch (err) {
     console.error('Failed to delete conversation:', err);
@@ -274,40 +301,43 @@ function showWelcomeHero() {
       <div class="tracera-welcome-icon">⚡</div>
       <h1 class="tracera-welcome-title">TRACERA</h1>
       <div class="tracera-welcome-tagline">Trace. Analyze. Understand.</div>
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+        BY PRIVSIGHT · AI-Powered Relationship Intelligence Assistant
+      </div>
       <p class="tracera-welcome-desc">
-        AI-Powered Relationship Intelligence Assistant for PrivSight. Ask natural language questions to uncover connections between individuals, organizations, email records, shared identifiers, and technical evidence across your scanned files and databases.
+        Welcome to TRACERA. I am your specialized AI assistant inside PrivSight, ready to answer questions regarding your personal-data discovery inventory, evidence gap analysis, detection rules, and privacy compliance. (Advanced visual relationship graph topology and multi-hop link discovery are planned for Phase 2).
       </p>
 
       <div class="tracera-prompts-grid">
-        <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the relationship between customers and orders graphically with an interactive graph.')">
-          <div class="tracera-prompt-icon">🕸️</div>
-          <div class="tracera-prompt-title">Explain Graphically</div>
-          <div class="tracera-prompt-sub">Explore customer and order connections with interactive Cytoscape nodes and edges.</div>
+        <div class="tracera-prompt-card" onclick="suggestPrompt('What is PrivSight\\'s methodology for personal data discovery and evidence inventory?')">
+          <div class="tracera-prompt-icon">🔍</div>
+          <div class="tracera-prompt-title">Discovery Methodology</div>
+          <div class="tracera-prompt-sub">Learn how PrivSight discovers and categorizes personal data across your files and databases.</div>
         </div>
 
-        <div class="tracera-prompt-card" onclick="suggestPrompt('What records and entities connect to customer C001?')">
-          <div class="tracera-prompt-icon">👤</div>
-          <div class="tracera-prompt-title">Trace Entity C001</div>
-          <div class="tracera-prompt-sub">Find all related transactions, orders, payments, and multi-hop data links.</div>
+        <div class="tracera-prompt-card" onclick="suggestPrompt('How are confidence scores and Missing Proofs calculated in the inventory?')">
+          <div class="tracera-prompt-icon">⚠️</div>
+          <div class="tracera-prompt-title">Missing Proofs & Gaps</div>
+          <div class="tracera-prompt-sub">Understand how technical evidence verification separates confirmed facts from missing proofs.</div>
         </div>
 
-        <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the cross-dataset relationships in a structured table.')">
-          <div class="tracera-prompt-icon">📊</div>
-          <div class="tracera-prompt-title">Tabular Breakdown</div>
-          <div class="tracera-prompt-sub">Generate a structured table detailing source fields, targets, cardinality, and matching rows.</div>
+        <div class="tracera-prompt-card" onclick="suggestPrompt('Explain the difference between direct personal identifiers and quasi-identifiers under GDPR.')">
+          <div class="tracera-prompt-icon">🛡️</div>
+          <div class="tracera-prompt-title">Direct vs Quasi-Identifiers</div>
+          <div class="tracera-prompt-sub">Review compliance distinctions and privacy risk implications for sensitive data fields.</div>
         </div>
 
-        <div class="tracera-prompt-card" onclick="suggestPrompt('Give me a chronological timeline of data events and transactions.')">
-          <div class="tracera-prompt-icon">⏱️</div>
-          <div class="tracera-prompt-title">Chronological Timeline</div>
-          <div class="tracera-prompt-sub">Trace the sequence of orders and transactions with real timestamps and status flags.</div>
+        <div class="tracera-prompt-card" onclick="suggestPrompt('How do detection rules scan database columns, CSVs, and unstructured files?')">
+          <div class="tracera-prompt-icon">⚙️</div>
+          <div class="tracera-prompt-title">Detection Rule Mechanics</div>
+          <div class="tracera-prompt-sub">Explore how regex, entropy, and NLP heuristics evaluate PII candidate likelihood.</div>
         </div>
       </div>
     </div>
   `;
 }
 
-// --- Chat Input Handling ---
+// --- Chat Input Handling (Phase 1 Large Responsive Composer) ---
 function initChatInput() {
   const input = document.getElementById('chatInput');
   const sendBtn = document.getElementById('btnSendChat');
@@ -317,24 +347,38 @@ function initChatInput() {
     newChatBtn.addEventListener('click', createNewConversation);
   }
 
-  if (input) {
-    // Auto-grow textarea
-    input.addEventListener('input', () => {
+  if (input && sendBtn) {
+    // Initial disabled state when composer is empty
+    sendBtn.disabled = true;
+    input.style.height = '110px';
+
+    const updateComposerState = () => {
+      const val = input.value.trim();
+      sendBtn.disabled = val.length === 0;
+
+      // Auto-expand textarea between 110px and 250px
       input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 140) + 'px';
-    });
+      const targetHeight = Math.max(110, Math.min(input.scrollHeight, 250));
+      input.style.height = targetHeight + 'px';
+    };
+
+    input.addEventListener('input', updateComposerState);
 
     // Enter sends, Shift+Enter creates newline
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        if (!sendBtn.disabled && input.value.trim()) {
+          sendChatMessage();
+        }
+      }
+    });
+
+    sendBtn.addEventListener('click', () => {
+      if (!sendBtn.disabled && input.value.trim()) {
         sendChatMessage();
       }
     });
-  }
-
-  if (sendBtn) {
-    sendBtn.addEventListener('click', sendChatMessage);
   }
 }
 
@@ -346,12 +390,14 @@ async function sendChatMessage() {
   const message = input.value.trim();
   if (!message) return;
 
+  lastUserMessage = message;
+
   // Clear welcome hero if present
   const hero = document.getElementById('welcomeHero');
   if (hero) hero.remove();
 
   input.value = '';
-  input.style.height = 'auto';
+  input.style.height = '110px';
   sendBtn.disabled = true;
 
   // 1. Render User Message
@@ -381,26 +427,66 @@ async function sendChatMessage() {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      appendMessageToChat('assistant', `⚠️ **Error Processing Request:** ${errData.detail || 'Server error occurred.'}`);
+      appendErrorMessageToChat(errData.detail || 'Server error occurred.', message);
       return;
     }
 
     const report = await res.json();
 
-    // Render Assistant Response with generated format and mandatory explanation
+    // Render Assistant Response
     appendMessageToChat('assistant', report.explanation, report);
     scrollChatToBottom();
 
     // Refresh threads list in background to reflect updated title
-    await loadConversations();
+    await loadConversations(false);
 
   } catch (err) {
     removeLoadingBubble(loadingId);
-    appendMessageToChat('assistant', `⚠️ **Network Connection Failed:** ${err.message}`);
+    appendErrorMessageToChat(`Network connection failed: ${err.message}`, message);
   } finally {
-    sendBtn.disabled = false;
+    const hasText = input.value.trim().length > 0;
+    sendBtn.disabled = !hasText;
     input.focus();
   }
+}
+
+function appendErrorMessageToChat(errorText, failedQuery) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'tracera-message-row assistant';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'tracera-avatar';
+  avatar.textContent = '⚡';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'tracera-bubble';
+  bubble.style.borderColor = 'var(--color-danger)';
+  bubble.style.background = 'rgba(239, 68, 68, 0.08)';
+
+  bubble.innerHTML = `
+    <div class="tracera-bubble-header">
+      <div class="tracera-author-badge" style="color: var(--color-danger);">
+        <span>TRACERA Alert</span>
+      </div>
+      <span class="tracera-timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+    </div>
+    <div class="tracera-bubble-content" style="color: var(--text-primary);">
+      <p style="margin-bottom:0.5rem;">⚠️ <strong>Request Error:</strong> ${escapeHtml(errorText)}</p>
+    </div>
+    <div style="margin-top:0.75rem; padding-top:0.5rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end;">
+      <button class="tracera-action-btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:0.3rem 0.65rem; border-radius:var(--radius-sm); font-size:0.75rem; cursor:pointer;" onclick="suggestPrompt('${escapeHtml(failedQuery)}')">
+        🔄 Retry Question
+      </button>
+    </div>
+  `;
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  container.appendChild(row);
+  scrollChatToBottom();
 }
 
 function setFormatPreference(fmt) {
@@ -582,18 +668,36 @@ function appendMessageToChat(role, text, metadata = {}) {
       <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); font-size:0.68rem;">🔒 PII Masked</span>
     `;
 
+    const rightActions = document.createElement('div');
+    rightActions.style.display = 'flex';
+    rightActions.style.gap = '0.4rem';
+
     const copyBtn = document.createElement('button');
     copyBtn.className = 'tracera-action-btn';
     copyBtn.style.fontSize = '0.72rem';
-    copyBtn.innerHTML = '📋 Copy Explanation';
+    copyBtn.innerHTML = '📋 Copy';
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(text || '');
       copyBtn.innerHTML = '✔ Copied!';
-      setTimeout(() => { copyBtn.innerHTML = '📋 Copy Explanation'; }, 2000);
+      setTimeout(() => { copyBtn.innerHTML = '📋 Copy'; }, 2000);
     };
 
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'tracera-action-btn';
+    retryBtn.style.fontSize = '0.72rem';
+    retryBtn.innerHTML = '🔄 Retry';
+    retryBtn.title = 'Retry last question';
+    retryBtn.onclick = () => {
+      if (lastUserMessage) {
+        suggestPrompt(lastUserMessage);
+      }
+    };
+
+    rightActions.appendChild(copyBtn);
+    rightActions.appendChild(retryBtn);
+
     footer.appendChild(leftBadges);
-    footer.appendChild(copyBtn);
+    footer.appendChild(rightActions);
     bubble.appendChild(footer);
   }
 

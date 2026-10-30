@@ -278,6 +278,91 @@ class AIAssistant:
 
     # --- Synthesis engine ---
 
+    def _handle_conceptual_privsight_query(self, query: str) -> Optional[str]:
+        q = query.lower()
+
+        # 1. Greetings / Assistant Identity
+        if any(w in q for w in ["hello", "hi", "hey", "who are you", "what are you", "what is tracera", "help me"]):
+            return (
+                "### TRACERA · AI Relationship Intelligence Assistant\n"
+                "Hello! I am **TRACERA** (**Trace. Analyze. Understand.**), the official AI assistant integrated inside **PrivSight**.\n\n"
+                "I am currently operating in **Phase 1: Basic AI Chat Interface & Platform Integration**. Here is what I can help you with:\n"
+                "- **Personal Data Inventory**: Explain discovered personal data candidates, categorization metrics, and privacy classifications.\n"
+                "- **Missing Proofs & Evidence Gaps**: Review unverified assertions and missing technical evidence chains.\n"
+                "- **Detection Rules**: Detail how regex, Shannon entropy, and contextual heuristics identify sensitive personal data.\n"
+                "- **Governance & Compliance**: Distinguish direct identifiers from quasi-identifiers under GDPR and CCPA frameworks.\n\n"
+                "*(Note: Interactive visual relationship graphs, dynamic network diagrams, and automated multi-hop link discovery are roadmap capabilities scheduled for Phase 2).*\n\n"
+                "How can I assist your investigation today?"
+            )
+
+        # 2. Methodology & Discovery Process
+        if any(w in q for w in ["methodology", "how do you discover", "how does privsight work", "discovery process", "approach"]):
+            return (
+                "### PrivSight Personal-Data Discovery Methodology\n"
+                "PrivSight implements an evidence-grounded approach to discovering and inventorying personal data:\n\n"
+                "1. **Deterministic Multi-Source Ingestion**:\n"
+                "   PrivSight connects directly to relational databases (SQLite, PostgreSQL, MySQL) and file stores (CSV, Excel) to introspect raw schemas, primary keys, and foreign keys.\n\n"
+                "2. **Three-Tier Detection Pipeline**:\n"
+                "   - *Syntactic Verification*: High-precision regex pattern matchers for standardized identifiers (Emails, Phone numbers, SSNs, National IDs).\n"
+                "   - *Statistical Entropy Analysis*: Evaluates token unpredictability to detect encrypted keys, hashes, and masked identifiers.\n"
+                "   - *Contextual Schema Heuristics*: Cross-examines column headers and table metadata to identify candidate personal data fields.\n\n"
+                "3. **Evidence Provenance & Verification**:\n"
+                "   Unlike probabilistic chatbots that invent data links, PrivSight records verified primary-foreign key relationships and exact value overlap.\n\n"
+                "4. **Privacy-Preserving Presentation**:\n"
+                "   Sensitive personal attributes are masked by default (`J*** D***`, `***-**-1234`) across all user-facing reports and chat responses."
+            )
+
+        # 3. Missing Proofs / Evidence Gaps
+        if any(w in q for w in ["missing proof", "evidence gap", "confidence score", "gaps", "calculated in the inventory"]):
+            return (
+                "### Understanding Missing Proofs & Evidence Gaps\n"
+                "In PrivSight, **Missing Proofs** represent detected personal data candidates or relationships that lack conclusive technical verification:\n\n"
+                "1. **What Triggers a Missing Proof?**\n"
+                "   - *Unenforced Foreign Keys*: A column that appears to store foreign customer IDs without an explicit foreign key constraint or complete index.\n"
+                "   - *Isolated Personal Data*: Columns containing personal data candidates that have no referential linkage to a master entity or subject table.\n"
+                "   - *Partial Referential Overlap*: Datasets where only a small percentage of values match the target table, indicating potential data quality issues.\n\n"
+                "2. **Confidence Score Calculation**:\n"
+                "   - **Verified (90–100%)**: Backed by formal schema constraints, primary keys, and exact value integrity.\n"
+                "   - **Needs Review (50–89%)**: High pattern match but missing relational constraints.\n"
+                "   - **Possible / Gap (<50%)**: Syntactic candidates lacking structural corroboration.\n\n"
+                "3. **Resolution Action**:\n"
+                "   Review the **Missing Proof** view to inspect unbacked claims, establish explicit linkages, or confirm false positives."
+            )
+
+        # 4. Direct Identifiers vs Quasi-Identifiers
+        if any(w in q for w in ["quasi", "direct identifier", "gdpr", "recital 26", "difference between"]):
+            return (
+                "### Direct Identifiers vs. Quasi-Identifiers (GDPR / Privacy Frameworks)\n"
+                "Understanding the distinction between direct and indirect personal identifiers is foundational to data protection:\n\n"
+                "1. **Direct Personal Identifiers**:\n"
+                "   - *Definition*: Attributes that uniquely identify an individual on their own without requiring additional contextual information.\n"
+                "   - *Examples*: Full Name, Social Security Number, National Identity Number, Passport Number, Email Address, Biometric Data.\n"
+                "   - *Risk*: High severity of identity theft, unauthorized tracking, and immediate privacy infringement if exposed.\n\n"
+                "2. **Quasi-Identifiers (Indirect Identifiers)**:\n"
+                "   - *Definition*: Attributes that do not identify a specific individual in isolation, but can uniquely single them out when combined with other datasets (Linkage Attacks).\n"
+                "   - *Examples*: ZIP Code, Birth Date, Gender, Job Title, Department Name, Hospital Visit Timestamp.\n"
+                "   - *Regulatory Context (GDPR Recital 26)*: Personal data includes any information relating to an identified or *identifiable* natural person, meaning combinations of quasi-identifiers fall under full GDPR protection.\n\n"
+                "3. **PrivSight Governance Strategy**:\n"
+                "   PrivSight tracks both direct identifiers and quasi-identifiers to compute linkage attack vulnerability across multi-table databases."
+            )
+
+        # 5. Detection Rule Mechanics
+        if any(w in q for w in ["detection rule", "mechanic", "regex", "entropy", "scan database"]):
+            return (
+                "### Detection Rule Mechanics in PrivSight\n"
+                "PrivSight evaluates every database column and data field through a multi-layered rule pipeline:\n\n"
+                "1. **Syntactic Rule Matchers (Regex)**:\n"
+                "   - Compares data values against compiled regex patterns with Luhn/checksum verification for credit cards and identity numbers.\n\n"
+                "2. **Entropy Scoring (Shannon Entropy)**:\n"
+                "   - Evaluates the randomness of values. High entropy indicates encrypted secrets or hashes, while low entropy suggests categorical data or repetitive codes.\n\n"
+                "3. **Column & Metadata Classification**:\n"
+                "   - Analyzes column nomenclature (`user_email`, `dob`, `ssn_num`, `phone`) against curated personal data vocabularies.\n\n"
+                "4. **Value-Level Referential Checks**:\n"
+                "   - Computes distinct value ratios and cross-dataset join cardinality to assess entity resolution likelihood."
+            )
+
+        return None
+
     def _synthesize_analytical_response(
         self,
         query: str,
@@ -301,8 +386,14 @@ class AIAssistant:
             parts.append(format_explanation)
             parts.append("\n---\n")
 
-        # 2. Specific Query Analysis
-        if id_focus:
+        # 2. Check for conceptual PrivSight questions (Phase 1 focus)
+        conceptual_answer = self._handle_conceptual_privsight_query(query)
+
+        # 3. Specific Query Analysis
+        if conceptual_answer and not id_focus and not entity_focus and format_req == "text":
+            parts.append(conceptual_answer)
+
+        elif id_focus:
             # Query about a specific entity ID, e.g. C001, E101
             conn_info = self.engine.find_entity_record_connections(id_focus)
             occurrences = conn_info.get("occurrences", [])

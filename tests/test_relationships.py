@@ -312,3 +312,90 @@ def test_chat_timeline_and_flowchart_formats(client: TestClient) -> None:
     assert chat_flow.status_code == 200
     msg_fl = chat_flow.json()
     assert msg_fl["format_requested"] in ["flowchart", "step_by_step"]
+
+
+def test_phase1_conversational_privsight_assistant(client: TestClient) -> None:
+    """Verify Phase 1 conversational PrivSight assistant responses and prompt suggestions."""
+    user = _register_and_login(client)
+    headers = {"Authorization": f"Bearer {user['token']}"}
+
+    # 1. Greeting & Identity
+    res_greet = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"message": "Hello! Who are you and what can you do?"},
+    )
+    assert res_greet.status_code == 200
+    data_greet = res_greet.json()
+    assert "TRACERA" in data_greet["explanation"]
+    assert "Phase 1" in data_greet["explanation"]
+    assert "PrivSight" in data_greet["explanation"]
+
+    # 2. PrivSight Methodology Question
+    res_method = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"message": "What is PrivSight's methodology for personal data discovery and evidence inventory?"},
+    )
+    assert res_method.status_code == 200
+    assert "Methodology" in res_method.json()["explanation"] or "Deterministic" in res_method.json()["explanation"]
+
+    # 3. Missing Proofs / Evidence Gaps
+    res_gaps = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"message": "How are confidence scores and Missing Proofs calculated in the inventory?"},
+    )
+    assert res_gaps.status_code == 200
+    assert "Missing Proof" in res_gaps.json()["explanation"] or "Confidence" in res_gaps.json()["explanation"]
+
+    # 4. Direct vs Quasi-Identifiers
+    res_quasi = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"message": "Explain the difference between direct personal identifiers and quasi-identifiers under GDPR."},
+    )
+    assert res_quasi.status_code == 200
+    assert "Direct" in res_quasi.json()["explanation"] and "Quasi" in res_quasi.json()["explanation"]
+
+
+def test_phase1_auto_titling_and_history_persistence(client: TestClient) -> None:
+    """Verify first user message auto-titles conversation and persists multi-turn history."""
+    user = _register_and_login(client)
+    headers = {"Authorization": f"Bearer {user['token']}"}
+
+    # 1. Create default conversation
+    create_res = client.post("/api/relationships/conversations", headers=headers, json={})
+    assert create_res.status_code == 200
+    conv_id = create_res.json()["id"]
+    assert create_res.json()["title"] == "New Exploration"
+
+    # 2. First message should auto-title conversation
+    first_msg = "How do detection rules scan database columns?"
+    chat1 = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"conversation_id": conv_id, "message": first_msg},
+    )
+    assert chat1.status_code == 200
+
+    # Inspect conversation title
+    conv_detail1 = client.get(f"/api/relationships/conversations/{conv_id}", headers=headers).json()
+    assert first_msg[:30] in conv_detail1["title"]
+    assert len(conv_detail1["messages"]) == 2  # user + assistant
+
+    # 3. Second follow-up message retains title and increments history
+    second_msg = "Can you elaborate on Shannon entropy scoring?"
+    chat2 = client.post(
+        "/api/relationships/chat",
+        headers=headers,
+        json={"conversation_id": conv_id, "message": second_msg},
+    )
+    assert chat2.status_code == 200
+
+    conv_detail2 = client.get(f"/api/relationships/conversations/{conv_id}", headers=headers).json()
+    assert conv_detail2["title"] == conv_detail1["title"]
+    assert len(conv_detail2["messages"]) == 4  # 2 user + 2 assistant
+    assert conv_detail2["messages"][0]["content"] == first_msg
+    assert conv_detail2["messages"][2]["content"] == second_msg
+

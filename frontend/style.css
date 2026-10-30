@@ -3198,46 +3198,79 @@ tbody tr:hover {
   max-height: 320px;
 }
 
-/* Bottom Chat Input Tray */
+/* Bottom Chat Input Tray - Phase 1 Modern AI Chat Layout */
 .tracera-input-tray {
-  padding: 0.85rem 1.25rem 0.75rem;
+  position: sticky;
+  bottom: 0;
+  padding: 1rem 1.5rem 1.25rem;
   border-top: 1px solid var(--border-color);
   background: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.tracera-composer-wrapper {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .tracera-input-box {
   display: flex;
-  align-items: flex-end;
-  gap: 0.65rem;
+  flex-direction: column;
   background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 0.55rem 0.85rem;
-  transition: var(--transition-fast);
+  padding: 0.85rem 1rem 0.65rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .tracera-input-box:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px var(--accent-gold-soft);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 3px var(--accent-gold-soft);
 }
 
 .tracera-textarea {
-  flex: 1;
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.95rem;
+  line-height: 1.55;
   resize: none;
-  min-height: 24px;
-  max-height: 140px;
+  min-height: 110px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.tracera-input-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.25rem;
+}
+
+.tracera-input-hint {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .tracera-send-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--gold-rich) 0%, var(--orange-primary) 100%);
   border: none;
@@ -3245,31 +3278,32 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.3);
-  transition: var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .tracera-send-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.5);
 }
 
 .tracera-send-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.35;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .tracera-input-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
   padding: 0 0.25rem;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
 }
 
