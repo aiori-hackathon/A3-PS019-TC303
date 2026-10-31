@@ -37,13 +37,20 @@ RelationshipKind = Literal[
 ExplanationFormat = Literal[
     "text",
     "graph",
+    "relationship_graph",
     "table",
+    "tabular",
+    "bar_chart",
+    "line_chart",
+    "pie_chart",
+    "chart",
     "flowchart",
     "diagram",
     "timeline",
     "bullet_points",
     "step_by_step",
-    "structured_report"
+    "comparison",
+    "structured_report",
 ]
 
 
@@ -142,12 +149,21 @@ class RelationshipReport(BaseModel):
     query: str
     selected_sources: List[str] = Field(default_factory=list)
     format_requested: ExplanationFormat = "text"
+    response_type: str = "text"
+    title: Optional[str] = None
     explanation: str
     format_explanation: Optional[str] = None
     graph: Optional[RelationshipGraph] = None
     table_data: Optional[List[Dict[str, Any]]] = None
     timeline_data: Optional[List[Dict[str, Any]]] = None
     flowchart_data: Optional[Dict[str, Any]] = None
+    chart_data: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None
+    steps: Optional[List[Dict[str, Any]]] = None
+    comparison_data: Optional[Dict[str, Any]] = None
+    nodes: Optional[List[Dict[str, Any]]] = None
+    edges: Optional[List[Dict[str, Any]]] = None
+    verification_status: Optional[str] = None
     summary: Dict[str, Any] = Field(default_factory=dict)
     warnings: List[str] = Field(default_factory=list)
     evidence_sources: List[str] = Field(default_factory=list)
@@ -168,11 +184,14 @@ class ChatMessage(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str
     format_requested: ExplanationFormat = "text"
+    response_type: Optional[str] = None
     format_explanation: Optional[str] = None
     graph_data: Optional[Dict[str, Any]] = None
     table_data: Optional[List[Dict[str, Any]]] = None
     timeline_data: Optional[List[Dict[str, Any]]] = None
     flowchart_data: Optional[Dict[str, Any]] = None
+    chart_data: Optional[Dict[str, Any]] = None
+    structured_data: Optional[Dict[str, Any]] = None
     sources_used: List[str] = Field(default_factory=list)
     created_at: str
 

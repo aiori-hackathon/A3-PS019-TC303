@@ -197,6 +197,9 @@ def chat_with_assistant(
         table_data=report.table_data,
         timeline_data=report.timeline_data,
         flowchart_data=report.flowchart_data,
+        chart_data=report.chart_data,
+        structured_data=report.comparison_data or report.data,
+        response_type=report.response_type,
         sources_used=report.evidence_sources,
     )
 

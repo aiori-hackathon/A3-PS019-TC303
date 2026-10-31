@@ -53,6 +53,9 @@ def init_chat_tables(db_path: Optional[Path] = None) -> None:
                     table_data TEXT,
                     timeline_data TEXT,
                     flowchart_data TEXT,
+                    chart_data TEXT,
+                    structured_data TEXT,
+                    response_type TEXT,
                     sources_used TEXT,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
@@ -62,6 +65,12 @@ def init_chat_tables(db_path: Optional[Path] = None) -> None:
                 CREATE INDEX IF NOT EXISTS idx_ai_msg_conv ON ai_chat_messages(conversation_id);
                 """
             )
+            # Schema migrations for existing SQLite databases
+            for col in ["chart_data", "structured_data", "response_type"]:
+                try:
+                    conn.execute(f"ALTER TABLE ai_chat_messages ADD COLUMN {col} TEXT")
+                except Exception:
+                    pass
     finally:
         conn.close()
 
@@ -147,7 +156,8 @@ class ChatPersistenceService:
                 """
                 SELECT id, conversation_id, role, content, format_requested,
                        format_explanation, graph_data, table_data, timeline_data,
-                       flowchart_data, sources_used, created_at
+                       flowchart_data, chart_data, structured_data, response_type,
+                       sources_used, created_at
                 FROM ai_chat_messages
                 WHERE conversation_id = ?
                 ORDER BY created_at ASC
@@ -169,6 +179,9 @@ class ChatPersistenceService:
                         table_data=json.loads(m["table_data"]) if m["table_data"] else None,
                         timeline_data=json.loads(m["timeline_data"]) if m["timeline_data"] else None,
                         flowchart_data=json.loads(m["flowchart_data"]) if m["flowchart_data"] else None,
+                        chart_data=json.loads(m["chart_data"]) if ("chart_data" in m.keys() and m["chart_data"]) else None,
+                        structured_data=json.loads(m["structured_data"]) if ("structured_data" in m.keys() and m["structured_data"]) else None,
+                        response_type=m["response_type"] if "response_type" in m.keys() else None,
                         sources_used=json.loads(m["sources_used"]) if m["sources_used"] else [],
                         created_at=m["created_at"],
                     )
@@ -197,6 +210,9 @@ class ChatPersistenceService:
         table_data: Optional[List[Dict[str, Any]]] = None,
         timeline_data: Optional[List[Dict[str, Any]]] = None,
         flowchart_data: Optional[Dict[str, Any]] = None,
+        chart_data: Optional[Dict[str, Any]] = None,
+        structured_data: Optional[Dict[str, Any]] = None,
+        response_type: Optional[str] = None,
         sources_used: Optional[List[str]] = None,
     ) -> ChatMessage:
         conn = self._conn()
@@ -217,8 +233,9 @@ class ChatPersistenceService:
                     INSERT INTO ai_chat_messages (
                         id, conversation_id, role, content, format_requested,
                         format_explanation, graph_data, table_data, timeline_data,
-                        flowchart_data, sources_used, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        flowchart_data, chart_data, structured_data, response_type,
+                        sources_used, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         msg_id,
@@ -231,6 +248,9 @@ class ChatPersistenceService:
                         json.dumps(table_data) if table_data else None,
                         json.dumps(timeline_data) if timeline_data else None,
                         json.dumps(flowchart_data) if flowchart_data else None,
+                        json.dumps(chart_data) if chart_data else None,
+                        json.dumps(structured_data) if structured_data else None,
+                        response_type or format_requested,
                         json.dumps(sources_used) if sources_used else None,
                         now,
                     ),
@@ -262,6 +282,9 @@ class ChatPersistenceService:
                 table_data=table_data,
                 timeline_data=timeline_data,
                 flowchart_data=flowchart_data,
+                chart_data=chart_data,
+                structured_data=structured_data,
+                response_type=response_type or format_requested,
                 sources_used=sources_used or [],
                 created_at=now,
             )

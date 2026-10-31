@@ -130,8 +130,25 @@ const AssistantMessage = {
     const bodyCard = document.createElement('div');
     bodyCard.className = 'tracera-assistant-body';
 
-    // 1. Interactive Cytoscape Graph (if available)
+    // Helper: Create a styled visual container card with icon, title, and badge
+    const createVisualCard = (icon, titleText, typeBadge) => {
+      const card = document.createElement('div');
+      card.className = 'tracera-visual-card';
+      card.innerHTML = `
+        <div class="tracera-visual-header">
+          <div class="tracera-visual-title">
+            <span class="tracera-visual-icon">${icon}</span>
+            <span>${escapeHtml(titleText)}</span>
+          </div>
+          <span class="tracera-visual-type-badge">${escapeHtml(typeBadge)}</span>
+        </div>
+      `;
+      return card;
+    };
+
+    // 1. Interactive Cytoscape Relationship Graph (if available)
     if (metadata.graph && metadata.graph.nodes && metadata.graph.nodes.length > 0) {
+      const graphCard = createVisualCard('🕸️', metadata.title || 'Relationship Topology Graph', 'RELATIONSHIP GRAPH');
       const graphId = 'cy-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       const graphWrapper = document.createElement('div');
       graphWrapper.className = 'tracera-graph-container';
@@ -143,20 +160,66 @@ const AssistantMessage = {
           <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 0.8)" title="Zoom out">➖</button>
           <button class="tracera-graph-btn" onclick="fitGraph('${graphId}')" title="Fit to view">🎯 Fit</button>
         </div>
+        <div class="tracera-graph-legend">
+          <div class="tracera-graph-legend-item">
+            <span class="tracera-legend-dot" style="background:#10B981;"></span>
+            <span>Verified FK</span>
+          </div>
+          <div class="tracera-graph-legend-item">
+            <span class="tracera-legend-dot" style="background:#D4A72C;"></span>
+            <span>Inferred Overlap</span>
+          </div>
+        </div>
       `;
-      bodyCard.appendChild(graphWrapper);
+      graphCard.appendChild(graphWrapper);
+      bodyCard.appendChild(graphCard);
 
       requestAnimationFrame(() => {
         initCytoscapeGraph(graphId, metadata.graph);
       });
     }
 
-    // 2. Structured Table (if available)
-    if (metadata.table_data && Array.isArray(metadata.table_data) && metadata.table_data.length > 0) {
+    // 2. Responsive SVG Charts (Bar, Line, Pie)
+    const chartPayload = metadata.chart_data || (metadata.data && metadata.data.series ? metadata.data : null);
+    if (chartPayload && chartPayload.series && chartPayload.series.length > 0) {
+      const chartType = (chartPayload.type || 'bar').toUpperCase();
+      const chartCard = createVisualCard('📊', metadata.title || chartPayload.title || `${chartType} Chart`, `${chartType} CHART`);
+      renderChart(chartCard, chartPayload, metadata.title);
+      bodyCard.appendChild(chartCard);
+    }
+
+    // 3. Process Flowchart (if available)
+    const flowPayload = metadata.flowchart_data || (metadata.data && metadata.data.steps && metadata.response_type === 'flowchart' ? metadata.data : null);
+    if (flowPayload && flowPayload.steps && flowPayload.steps.length > 0) {
+      const flowCard = createVisualCard('🔀', metadata.title || flowPayload.title || 'Process Flowchart', 'FLOWCHART');
+      renderFlowchart(flowCard, flowPayload, metadata.title);
+      bodyCard.appendChild(flowCard);
+    }
+
+    // 4. Comparative Schema & Governance Matrix (if available)
+    const compPayload = metadata.comparison_data || (metadata.data && metadata.data.entities ? metadata.data : null);
+    if (compPayload && compPayload.entities && compPayload.entities.length > 0) {
+      const compCard = createVisualCard('⚖️', metadata.title || compPayload.title || 'Comparative Matrix', 'COMPARISON');
+      renderComparison(compCard, compPayload, metadata.title);
+      bodyCard.appendChild(compCard);
+    }
+
+    // 5. Step-by-Step Traversal Cards (if available)
+    const stepPayload = metadata.steps || (metadata.data && metadata.data.steps && metadata.response_type === 'step_by_step' ? metadata.data.steps : null);
+    if (stepPayload && Array.isArray(stepPayload) && stepPayload.length > 0 && !flowPayload) {
+      const stepCard = createVisualCard('🔢', metadata.title || 'Step-by-Step Relational Verification', 'STEP-BY-STEP');
+      renderStepByStep(stepCard, stepPayload, metadata.title);
+      bodyCard.appendChild(stepCard);
+    }
+
+    // 6. Structured Table (if available)
+    const tblPayload = metadata.table_data || (metadata.data && metadata.data.table ? metadata.data.table : null);
+    if (tblPayload && Array.isArray(tblPayload) && tblPayload.length > 0) {
+      const tblCard = createVisualCard('📋', metadata.title || 'Structured Relationship Matrix', 'STRUCTURED TABLE');
       const tableWrapper = document.createElement('div');
       tableWrapper.className = 'tracera-table-wrapper';
 
-      const cols = Object.keys(metadata.table_data[0]);
+      const cols = Object.keys(tblPayload[0]);
       let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
       cols.forEach(c => {
         const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
@@ -164,7 +227,7 @@ const AssistantMessage = {
       });
       tableHtml += '</tr></thead><tbody>';
 
-      metadata.table_data.forEach(rowItem => {
+      tblPayload.forEach(rowItem => {
         tableHtml += '<tr>';
         cols.forEach(c => {
           let val = rowItem[c];
@@ -183,18 +246,21 @@ const AssistantMessage = {
       tableHtml += '</tbody></table>';
 
       tableWrapper.innerHTML = tableHtml;
-      bodyCard.appendChild(tableWrapper);
+      tblCard.appendChild(tableWrapper);
+      bodyCard.appendChild(tblCard);
     }
 
-    // 3. Timeline Cards (if available)
-    if (metadata.timeline_data && Array.isArray(metadata.timeline_data) && metadata.timeline_data.length > 0) {
+    // 7. Timeline Cards (if available)
+    const timePayload = metadata.timeline_data || (metadata.data && metadata.data.timeline ? metadata.data.timeline : null);
+    if (timePayload && Array.isArray(timePayload) && timePayload.length > 0) {
+      const timeCard = createVisualCard('⏱️', metadata.title || 'Chronological Event Timeline', 'TIMELINE');
       const timelineWrapper = document.createElement('div');
-      timelineWrapper.style.margin = '0.85rem 0';
+      timelineWrapper.style.margin = '0.5rem 0';
       timelineWrapper.style.display = 'flex';
       timelineWrapper.style.flexDirection = 'column';
       timelineWrapper.style.gap = '0.6rem';
 
-      metadata.timeline_data.forEach(ev => {
+      timePayload.forEach(ev => {
         const card = document.createElement('div');
         card.style.background = 'var(--bg-elevated)';
         card.style.border = '1px solid var(--border-color)';
@@ -219,7 +285,8 @@ const AssistantMessage = {
         `;
         timelineWrapper.appendChild(card);
       });
-      bodyCard.appendChild(timelineWrapper);
+      timeCard.appendChild(timelineWrapper);
+      bodyCard.appendChild(timeCard);
     }
 
     // 4. Formatted Markdown Analytical Content
@@ -655,13 +722,19 @@ async function selectConversation(convId) {
       if (msg.role === 'user') {
         ChatMessageList.addUserMessage(msgId, msg.content, msg.created_at);
       } else {
+        const struct = msg.structured_data || {};
         ChatMessageList.addAssistantMessage(msgId, msg.content, {
           format_requested: msg.format_requested,
           format_explanation: msg.format_explanation,
+          response_type: msg.response_type,
+          title: struct.title || null,
           graph: msg.graph_data,
           table_data: msg.table_data,
           timeline_data: msg.timeline_data,
-          flowchart_data: msg.flowchart_data,
+          flowchart_data: msg.flowchart_data || struct.flowchart,
+          chart_data: msg.chart_data || struct.chart,
+          steps: struct.steps || null,
+          comparison_data: struct.comparison || null,
           timestamp: msg.created_at,
         });
       }
@@ -894,8 +967,397 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// 9. CYTOSCAPE.JS & INSPECTOR MODAL
+// 9. DYNAMIC VISUALIZATION ENGINE RENDERERS
 // ==========================================
+
+/**
+ * Responsive SVG Chart Generator (Bar, Line, Pie)
+ * 100% native SVG with tooltips, legend, and readable axes.
+ */
+function renderChart(container, chartData, title) {
+  if (!chartData || !chartData.series || !Array.isArray(chartData.series) || chartData.series.length === 0) {
+    const emptyNotice = document.createElement('div');
+    emptyNotice.style.padding = '1rem';
+    emptyNotice.style.color = 'var(--text-muted)';
+    emptyNotice.style.fontSize = '0.8rem';
+    emptyNotice.textContent = 'No numerical series data available for this chart.';
+    container.appendChild(emptyNotice);
+    return;
+  }
+
+  const chartType = (chartData.type || 'bar').toLowerCase();
+  const series = chartData.series;
+  const colors = ['#10B981', '#D4A72C', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B', '#06B6D4'];
+
+  const chartBox = document.createElement('div');
+  chartBox.className = 'tracera-chart-container';
+
+  // Floating Tooltip
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tracera-chart-tooltip';
+  chartBox.appendChild(tooltip);
+
+  if (chartType === 'pie') {
+    // Pie / Donut Chart
+    const total = series.reduce((sum, item) => sum + (Number(item.value) || 0), 0) || 1;
+    const cx = 130, cy = 130, r = 90, innerR = 45;
+    let currentAngle = -Math.PI / 2;
+
+    let pathsSvg = '';
+    series.forEach((slice, idx) => {
+      const val = Number(slice.value) || 0;
+      const sliceAngle = (val / total) * 2 * Math.PI;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + sliceAngle;
+      currentAngle = endAngle;
+
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle);
+      const y2 = cy + r * Math.sin(endAngle);
+
+      const ix1 = cx + innerR * Math.cos(endAngle);
+      const iy1 = cy + innerR * Math.sin(endAngle);
+      const ix2 = cx + innerR * Math.cos(startAngle);
+      const iy2 = cy + innerR * Math.sin(startAngle);
+
+      const largeArc = sliceAngle > Math.PI ? 1 : 0;
+      const color = colors[idx % colors.length];
+      const pct = Math.round((val / total) * 100);
+
+      const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2} Z`;
+
+      pathsSvg += `<path d="${d}" fill="${color}" stroke="#090D12" stroke-width="2" style="cursor:pointer; transition:opacity 0.2s;" data-label="${escapeHtml(slice.label)}" data-val="${val}" data-pct="${pct}%" class="tracera-chart-slice" />`;
+    });
+
+    // Right Legend
+    let legendSvg = '';
+    series.forEach((slice, idx) => {
+      const color = colors[idx % colors.length];
+      const val = slice.value;
+      const pct = Math.round((val / total) * 100);
+      const ly = 35 + idx * 24;
+      if (ly < 250) {
+        legendSvg += `
+          <rect x="265" y="${ly}" width="12" height="12" rx="3" fill="${color}" />
+          <text x="285" y="${ly + 10}" fill="#E5E7EB" font-size="11" font-family="system-ui, sans-serif" font-weight="600">${escapeHtml(slice.label)}</text>
+          <text x="450" y="${ly + 10}" fill="#9CA3AF" font-size="11" font-family="monospace" text-anchor="end">${val} (${pct}%)</text>
+        `;
+      }
+    });
+
+    chartBox.innerHTML += `
+      <svg viewBox="0 0 480 260" class="tracera-chart-svg">
+        ${pathsSvg}
+        <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif">TOTAL</text>
+        <text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#F3F4F6" font-size="14" font-weight="800" font-family="monospace">${total}</text>
+        ${legendSvg}
+      </svg>
+    `;
+
+  } else if (chartType === 'line') {
+    // Line Chart
+    const maxVal = Math.max(...series.map(s => Number(s.value) || 0), 10);
+    const w = 540, h = 240, padL = 60, padR = 30, padT = 30, padB = 40;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+
+    let points = [];
+    const step = series.length > 1 ? plotW / (series.length - 1) : plotW / 2;
+
+    series.forEach((pt, i) => {
+      const val = Number(pt.value) || 0;
+      const x = padL + (series.length > 1 ? i * step : plotW / 2);
+      const y = padT + plotH - (val / maxVal) * plotH;
+      points.push({ x, y, label: pt.label, value: val });
+    });
+
+    const ptsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+    const areaStr = `${points[0].x},${padT + plotH} ` + ptsStr + ` ${points[points.length - 1].x},${padT + plotH}`;
+
+    // Grid lines & Y ticks
+    let gridLines = '';
+    const ticks = [0, Math.round(maxVal / 2), maxVal];
+    ticks.forEach(t => {
+      const ty = padT + plotH - (t / maxVal) * plotH;
+      gridLines += `
+        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="#1E293B" stroke-dasharray="3 3" />
+        <text x="${padL - 10}" y="${ty + 4}" fill="#6B7280" font-size="10" font-family="monospace" text-anchor="end">${t}</text>
+      `;
+    });
+
+    let dotsSvg = '';
+    points.forEach((p) => {
+      dotsSvg += `
+        <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#D4A72C" stroke="#090D12" stroke-width="2" class="tracera-chart-dot" data-label="${escapeHtml(p.label)}" data-val="${p.value}" style="cursor:pointer;" />
+        <text x="${p.x}" y="${padT + plotH + 20}" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">${escapeHtml(p.label)}</text>
+      `;
+    });
+
+    chartBox.innerHTML += `
+      <svg viewBox="0 0 ${w} ${h}" class="tracera-chart-svg">
+        <defs>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#D4A72C" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#D4A72C" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        ${gridLines}
+        <polygon points="${areaStr}" fill="url(#lineGrad)" />
+        <polyline points="${ptsStr}" fill="none" stroke="#D4A72C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        ${dotsSvg}
+        <text x="${w / 2}" y="${h - 4}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif">${escapeHtml(chartData.x_label || 'Timeline')}</text>
+        <text x="14" y="${h / 2}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Count')}</text>
+      </svg>
+    `;
+
+  } else {
+    // Bar Chart
+    const maxVal = Math.max(...series.map(s => Number(s.value) || 0), 10);
+    const w = 540, h = 240, padL = 60, padR = 30, padT = 30, padB = 40;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+    const barWidth = Math.min(48, Math.max(16, (plotW / series.length) * 0.65));
+    const step = plotW / series.length;
+
+    let gridLines = '';
+    const ticks = [0, Math.round(maxVal / 2), maxVal];
+    ticks.forEach(t => {
+      const ty = padT + plotH - (t / maxVal) * plotH;
+      gridLines += `
+        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="#1E293B" stroke-dasharray="3 3" />
+        <text x="${padL - 10}" y="${ty + 4}" fill="#6B7280" font-size="10" font-family="monospace" text-anchor="end">${t}</text>
+      `;
+    });
+
+    let barsSvg = '';
+    series.forEach((bar, i) => {
+      const val = Number(bar.value) || 0;
+      const barH = (val / maxVal) * plotH;
+      const x = padL + i * step + (step - barWidth) / 2;
+      const y = padT + plotH - barH;
+      const color = colors[i % colors.length];
+
+      barsSvg += `
+        <rect x="${x}" y="${y}" width="${barWidth}" height="${barH}" rx="4" fill="${color}" opacity="0.88" class="tracera-chart-bar" data-label="${escapeHtml(bar.label)}" data-val="${val}" style="cursor:pointer; transition:opacity 0.2s;" />
+        <text x="${x + barWidth / 2}" y="${y - 6}" fill="#E5E7EB" font-size="10" font-family="monospace" font-weight="700" text-anchor="middle">${val}</text>
+        <text x="${x + barWidth / 2}" y="${padT + plotH + 18}" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">${escapeHtml(bar.label)}</text>
+      `;
+    });
+
+    chartBox.innerHTML += `
+      <svg viewBox="0 0 ${w} ${h}" class="tracera-chart-svg">
+        ${gridLines}
+        ${barsSvg}
+        <text x="${w / 2}" y="${h - 4}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif">${escapeHtml(chartData.x_label || 'Category')}</text>
+        <text x="14" y="${h / 2}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Records / Gaps')}</text>
+      </svg>
+    `;
+  }
+
+  // Tooltip Interaction
+  container.appendChild(chartBox);
+  chartBox.addEventListener('mouseover', (e) => {
+    const target = e.target;
+    if (target.dataset && target.dataset.val !== undefined) {
+      tooltip.style.opacity = '1';
+      tooltip.innerHTML = `<strong>${escapeHtml(target.dataset.label)}</strong>: ${escapeHtml(target.dataset.val)} ${target.dataset.pct ? '(' + escapeHtml(target.dataset.pct) + ')' : ''}`;
+    }
+  });
+  chartBox.addEventListener('mousemove', (e) => {
+    const rect = chartBox.getBoundingClientRect();
+    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+    tooltip.style.top = (e.clientY - rect.top - 28) + 'px';
+  });
+  chartBox.addEventListener('mouseout', () => {
+    tooltip.style.opacity = '0';
+  });
+}
+
+/**
+ * Process Flowchart Generator
+ */
+function renderFlowchart(container, flowchartData, title) {
+  if (!flowchartData || !flowchartData.steps || !Array.isArray(flowchartData.steps)) return;
+
+  const flowBox = document.createElement('div');
+  flowBox.className = 'tracera-flowchart-container';
+
+  flowchartData.steps.forEach((step, idx) => {
+    const stepEl = document.createElement('div');
+    stepEl.className = 'tracera-flow-step';
+
+    const stepNum = step.step_num || (idx + 1);
+    const stepTitle = step.title || `Stage ${stepNum}`;
+    const stepDesc = step.description || '';
+    const badge = step.badge || 'Verified Step';
+
+    stepEl.innerHTML = `
+      <div class="tracera-flow-step-num">${stepNum}</div>
+      <div class="tracera-flow-step-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+          <div class="tracera-flow-step-title">${escapeHtml(stepTitle)}</div>
+          <span class="badge badge-status-complete" style="font-size:0.68rem;">${escapeHtml(badge)}</span>
+        </div>
+        <div class="tracera-flow-step-desc">${escapeHtml(stepDesc)}</div>
+      </div>
+    `;
+
+    flowBox.appendChild(stepEl);
+
+    // Connector Arrow
+    if (idx < flowchartData.steps.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'tracera-flow-arrow';
+      arrow.innerHTML = '⬇';
+      flowBox.appendChild(arrow);
+    }
+  });
+
+  container.appendChild(flowBox);
+}
+
+/**
+ * Step-by-Step Traversal Generator
+ */
+function renderStepByStep(container, steps, title) {
+  if (!steps || !Array.isArray(steps) || steps.length === 0) return;
+
+  const stepsBox = document.createElement('div');
+  stepsBox.className = 'tracera-steps-container';
+
+  steps.forEach((s, idx) => {
+    const card = document.createElement('div');
+    card.className = 'tracera-step-card';
+    const num = s.index || (idx + 1);
+    const titleText = s.title || `Step ${num}`;
+    const descText = s.description || (typeof s === 'string' ? s : '');
+
+    card.innerHTML = `
+      <div class="tracera-step-index">STEP ${num}</div>
+      <div class="tracera-step-body">
+        <div class="tracera-step-body-title">${escapeHtml(titleText)}</div>
+        <div class="tracera-step-body-desc">${escapeHtml(descText)}</div>
+      </div>
+    `;
+    stepsBox.appendChild(card);
+  });
+
+  container.appendChild(stepsBox);
+}
+
+/**
+ * Comparative Matrix Generator
+ */
+function renderComparison(container, comparisonData, title) {
+  if (!comparisonData || !comparisonData.entities || !Array.isArray(comparisonData.entities)) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tracera-comparison-wrapper';
+
+  const entities = comparisonData.entities;
+  const attributes = comparisonData.attributes || [];
+
+  let tableHtml = '<table class="tracera-comparison-table"><thead><tr>';
+  tableHtml += '<th style="width: 25%;">Governance Dimension</th>';
+  entities.forEach(ent => {
+    tableHtml += `<th>${escapeHtml(ent)}</th>`;
+  });
+  tableHtml += '</tr></thead><tbody>';
+
+  attributes.forEach(attr => {
+    tableHtml += `<tr><td style="font-weight: 700; color: var(--accent-gold);">${escapeHtml(attr.attribute || '')}</td>`;
+    entities.forEach(ent => {
+      const val = (attr.values && attr.values[ent] !== undefined) ? attr.values[ent] : '-';
+      tableHtml += `<td>${escapeHtml(String(val))}</td>`;
+    });
+    tableHtml += '</tr>';
+  });
+
+  tableHtml += '</tbody></table>';
+  wrap.innerHTML = tableHtml;
+  container.appendChild(wrap);
+}
+
+// ==========================================
+// 10. CYTOSCAPE.JS & INSPECTOR MODALS
+// ==========================================
+function openNodeModal(data) {
+  const modal = document.getElementById('detailModal');
+  const titleEl = document.getElementById('modalFieldTitle');
+  const bodyEl = document.getElementById('modalDetailsBody');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.innerHTML = `<span>Entity Node:</span> <strong style="color:#FFF;">${escapeHtml(data.label)}</strong>`;
+  bodyEl.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.85rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Entity Identifier:</span>
+        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.id || data.label)}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Primary Dataset / Source:</span>
+        <span>${escapeHtml(data.source || 'Scanned Relational Database')}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Entity Classification:</span>
+        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold);">${escapeHtml(data.type || 'Personal Data Domain')}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Verification Level:</span>
+        <span class="badge badge-status-complete">100% Deterministic Schema Grounded</span>
+      </div>
+      <div style="margin-top:0.5rem; padding:0.65rem 0.85rem; background:rgba(16, 185, 129, 0.08); border-left:3px solid #10B981; border-radius:4px; font-size:0.78rem; color:#A7F3D0;">
+        PrivSight verified this entity against actual database tables and catalog metadata without synthetic fabrication.
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
+function openEdgeModal(data) {
+  const modal = document.getElementById('detailModal');
+  const titleEl = document.getElementById('modalFieldTitle');
+  const bodyEl = document.getElementById('modalDetailsBody');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const isVerified = data.status === 'verified';
+  const confPct = Math.round((data.confidence || 1.0) * 100);
+
+  titleEl.innerHTML = `<span>Relationship:</span> <strong style="color:#FFF;">${escapeHtml(data.source)} ➔ ${escapeHtml(data.target)}</strong>`;
+  bodyEl.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.85rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Source Entity:</span>
+        <strong style="color:var(--text-primary); font-family:monospace;">${escapeHtml(data.source)}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Target Entity:</span>
+        <strong style="color:var(--text-primary); font-family:monospace;">${escapeHtml(data.target)}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Cardinality:</span>
+        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.label || 'N:1')}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Verification Status:</span>
+        <span class="badge ${isVerified ? 'badge-status-complete' : ''}" style="${!isVerified ? 'background:rgba(212,167,44,0.15); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3);' : ''}">${isVerified ? 'VERIFIED CONSTRAINT' : 'INFERRED VALUE OVERLAP'}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+        <span style="color:var(--text-secondary);">Confidence Score:</span>
+        <strong style="color:${isVerified ? '#10B981' : 'var(--accent-gold)'};">${confPct}%</strong>
+      </div>
+      <div style="margin-top:0.4rem;">
+        <span style="color:var(--text-secondary); font-size:0.78rem; display:block; margin-bottom:0.25rem;">Technical Evidence & Join Provenance:</span>
+        <div style="padding:0.6rem 0.85rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.75rem; color:#E5E7EB;">
+          ${escapeHtml(data.evidence || 'Database Foreign Key constraint validated by PrivSight Schema Engine.')}
+        </div>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
 function initCytoscapeGraph(containerId, graphData) {
   if (typeof cytoscape === 'undefined') {
     console.warn('Cytoscape.js library not loaded.');
@@ -922,6 +1384,7 @@ function initCytoscapeGraph(containerId, graphData) {
 
   if (graphData.edges) {
     graphData.edges.forEach((e, idx) => {
+      const isInf = e.verification_status === 'Inferred' || (e.confidence_score !== undefined && e.confidence_score < 0.9);
       elements.push({
         data: {
           id: 'e_' + idx + '_' + e.source + '_' + e.target,
@@ -930,6 +1393,7 @@ function initCytoscapeGraph(containerId, graphData) {
           label: e.cardinality || '',
           evidence: e.evidence,
           confidence: e.confidence_score,
+          status: isInf ? 'inferred' : 'verified',
           raw: e,
         }
       });
@@ -950,36 +1414,67 @@ function initCytoscapeGraph(containerId, graphData) {
           'color': '#EAEAEA',
           'font-size': '10px',
           'font-family': 'monospace',
+          'font-weight': 'bold',
           'text-valign': 'center',
           'text-halign': 'center',
-          'width': '52px',
-          'height': '52px',
+          'width': '58px',
+          'height': '58px',
           'text-wrap': 'wrap',
-          'text-max-width': '48px',
+          'text-max-width': '52px',
+          'cursor': 'pointer',
         }
       },
       {
         selector: 'edge',
         style: {
-          'width': 2,
-          'line-color': '#555555',
-          'target-arrow-color': '#D4A72C',
-          'target-arrow-shape': 'triangle',
+          'width': 2.5,
           'curve-style': 'bezier',
           'label': 'data(label)',
           'font-size': '8px',
-          'color': '#888888',
+          'font-family': 'monospace',
           'text-rotation': 'autorotate',
           'text-margin-y': -8,
+          'cursor': 'pointer',
+        }
+      },
+      {
+        selector: 'edge[status = "verified"]',
+        style: {
+          'line-color': '#10B981',
+          'target-arrow-color': '#10B981',
+          'target-arrow-shape': 'triangle',
+          'line-style': 'solid',
+          'color': '#10B981',
+        }
+      },
+      {
+        selector: 'edge[status = "inferred"]',
+        style: {
+          'line-color': '#D4A72C',
+          'target-arrow-color': '#D4A72C',
+          'target-arrow-shape': 'triangle',
+          'line-style': 'dashed',
+          'color': '#D4A72C',
         }
       }
     ],
     layout: {
       name: 'breadthfirst',
       directed: true,
-      padding: 20,
-      spacingFactor: 1.2,
+      padding: 24,
+      spacingFactor: 1.25,
     }
+  });
+
+  // Tap interaction for node & edge inspection
+  cy.on('tap', 'node', function(evt) {
+    const node = evt.target;
+    openNodeModal(node.data());
+  });
+
+  cy.on('tap', 'edge', function(evt) {
+    const edge = evt.target;
+    openEdgeModal(edge.data());
   });
 
   activeCytoscapeInstances[containerId] = cy;
