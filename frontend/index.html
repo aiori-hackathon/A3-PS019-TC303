@@ -51,6 +51,7 @@
             name="email" 
             class="form-input" 
             placeholder="compliance@enterprise.com" 
+            value="compliance@enterprise.com"
             required 
             autocomplete="email"
             autofocus
@@ -67,6 +68,7 @@
               name="password" 
               class="form-input" 
               placeholder="••••••••••••" 
+              value="Password123!"
               required 
               autocomplete="current-password"
             >
@@ -85,7 +87,7 @@
 
         <div class="auth-row">
           <label class="remember-checkbox-label">
-            <input type="checkbox" id="rememberMe">
+            <input type="checkbox" id="rememberMe" checked>
             <span>Remember me (30 days)</span>
           </label>
           <a href="#" class="forgot-password-link" id="forgotPasswordBtn">Forgot password?</a>
@@ -96,6 +98,11 @@
           <span id="btnSubmitText">Sign In</span>
           <span>→</span>
         </button>
+
+        <div class="demo-creds-hint" style="margin-top: 1rem; padding: 0.65rem 0.85rem; background: rgba(212, 160, 23, 0.08); border: 1px solid rgba(212, 160, 23, 0.25); border-radius: 8px; font-size: 0.78rem; text-align: center; color: var(--text-secondary);">
+          <div style="font-weight: 600; color: var(--gold-rich); margin-bottom: 0.2rem;">✨ Pre-configured Demo Access</div>
+          <div>Account: <strong style="color: var(--text-primary);">compliance@enterprise.com</strong> &nbsp;|&nbsp; Pass: <strong style="color: var(--text-primary);">Password123!</strong></div>
+        </div>
       </form>
 
       <!-- Navigation Footer -->

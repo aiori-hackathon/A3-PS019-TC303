@@ -2227,6 +2227,20 @@ async function handleLoginSubmit(e) {
       return;
     }
 
+    // Save token & user in localStorage and cookie for bulletproof serverless auth
+    if (data.token) {
+      try {
+        localStorage.setItem('privsight_token', data.token);
+        const isSecure = window.location.protocol === 'https:';
+        document.cookie = `privsight_session=${data.token}; path=/; max-age=${30 * 86400}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+      } catch (e) {}
+    }
+    if (data.user) {
+      try {
+        localStorage.setItem('privsight_user', JSON.stringify(data.user));
+      } catch (e) {}
+    }
+
     // Success! Redirect to intended destination or /workspace
     const params = new URLSearchParams(window.location.search);
     let target = params.get('redirect') || '/workspace';
@@ -2314,6 +2328,19 @@ async function handleRegisterSubmit(e) {
       return;
     }
 
+    if (data.token) {
+      try {
+        localStorage.setItem('privsight_token', data.token);
+        const isSecure = window.location.protocol === 'https:';
+        document.cookie = `privsight_session=${data.token}; path=/; max-age=${30 * 86400}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+      } catch (e) {}
+    }
+    if (data.user) {
+      try {
+        localStorage.setItem('privsight_user', JSON.stringify(data.user));
+      } catch (e) {}
+    }
+
     // Success! Redirect to workspace
     if (alertBox && alertMsg) {
       alertMsg.textContent = 'Account created successfully! Redirecting to workspace...';
@@ -2336,16 +2363,29 @@ async function handleRegisterSubmit(e) {
 
 async function handleLogout() {
   try {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    const token = localStorage.getItem('privsight_token');
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    await fetch('/api/auth/logout', { method: 'POST', headers });
   } catch (e) {
     console.error('Logout error:', e);
   }
+  try {
+    localStorage.removeItem('privsight_token');
+    localStorage.removeItem('privsight_user');
+    document.cookie = 'privsight_session=; path=/; max-age=0; SameSite=Lax';
+  } catch (e) {}
   window.location.href = '/login';
 }
 
 async function checkCurrentUser() {
   try {
-    const res = await fetch('/api/auth/me');
+    const token = localStorage.getItem('privsight_token');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+    const res = await fetch('/api/auth/me', { headers });
     if (!res.ok) {
       // If unauthenticated on a protected dashboard page, automatically redirect to login
       const isAuthPage = document.getElementById('loginForm') || document.getElementById('registerForm');

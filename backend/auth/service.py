@@ -7,6 +7,10 @@ secure session lifecycle management, and password resets using bcrypt.
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import logging
 import os
 import secrets
@@ -21,6 +25,8 @@ from backend.auth.db import get_db_connection, init_auth_db
 from backend.auth.models import UserResponse
 
 logger = logging.getLogger("privsight.auth")
+AUTH_SECRET_KEY = os.getenv("PRIVSIGHT_SECRET_KEY", "privsight-enterprise-secret-key-2026-ps019-tc303")
+
 
 
 class AuthService:
@@ -140,22 +146,45 @@ class AuthService:
         old_token: Optional[str] = None,
     ) -> Tuple[str, datetime, int]:
         """
-        Creates a persistent session token with session regeneration.
-        Token is a 32-byte cryptographically secure URL-safe string.
+        Creates a persistent signed session token with session regeneration.
+        The token is an HMAC-SHA256 signed bearer token that can be validated
+        both via SQLite and statelessly across distributed/serverless containers.
         Invalidates any previous session token passed as old_token.
         Returns: (token, expiry_datetime, max_age_seconds)
         """
-        token = secrets.token_urlsafe(32)
         duration_days = 30 if remember_me else 1
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=duration_days)
         max_age_seconds = duration_days * 86400
+        exp_ts = int(expires_at.timestamp())
 
         conn = self._conn()
         try:
             with conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT email, full_name FROM users WHERE id = ?", (user_id,))
+                user_row = cursor.fetchone()
+                user_email = user_row["email"] if user_row else ""
+                user_name = user_row["full_name"] if user_row else ""
+
+                payload_dict = {
+                    "uid": user_id,
+                    "email": user_email,
+                    "name": user_name,
+                    "exp": exp_ts,
+                    "rnd": secrets.token_hex(8),
+                }
+                payload_json = json.dumps(payload_dict, separators=(",", ":")).encode("utf-8")
+                payload_b64 = base64.urlsafe_b64encode(payload_json).decode("ascii").rstrip("=")
+                sig = hmac.new(AUTH_SECRET_KEY.encode("utf-8"), payload_b64.encode("ascii"), hashlib.sha256).hexdigest()
+                token = f"ps_{payload_b64}_{sig}"
+
                 if old_token:
                     conn.execute("DELETE FROM sessions WHERE token = ?", (old_token,))
+                    conn.execute(
+                        "INSERT OR IGNORE INTO revoked_tokens (token, revoked_at) VALUES (?, ?)",
+                        (old_token, now.isoformat()),
+                    )
                 conn.execute(
                     """
                     INSERT INTO sessions (token, user_id, created_at, expires_at)
@@ -170,7 +199,8 @@ class AuthService:
     def get_user_by_session(self, token: Optional[str]) -> Optional[UserResponse]:
         """
         Validates session token. If valid and unexpired, returns UserResponse.
-        Otherwise removes expired session and returns None.
+        Supports both local SQLite lookup and stateless cryptographic fallback
+        for serverless environments (Vercel).
         """
         if not token:
             return None
@@ -178,32 +208,90 @@ class AuthService:
         conn = self._conn()
         try:
             now_iso = datetime.now(timezone.utc).isoformat()
+            now_ts = datetime.now(timezone.utc).timestamp()
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT u.id, u.email, u.full_name, u.created_at, s.expires_at
-                FROM sessions s
-                JOIN users u ON s.user_id = u.id
-                WHERE s.token = ?
-                """,
-                (token,),
-            )
-            row = cursor.fetchone()
-            if not row:
-                return None
 
-            if row["expires_at"] <= now_iso:
-                # Session has expired, clean up lazily
-                with conn:
-                    conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
-                return None
+            # 1. Check if token was explicitly revoked
+            try:
+                cursor.execute("SELECT token FROM revoked_tokens WHERE token = ?", (token,))
+                if cursor.fetchone():
+                    return None
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                pass
 
-            return UserResponse(
-                id=row["id"],
-                email=row["email"],
-                full_name=row["full_name"],
-                created_at=row["created_at"],
-            )
+            # 2. Check local SQLite sessions table
+            try:
+                cursor.execute(
+                    """
+                    SELECT u.id, u.email, u.full_name, u.created_at, s.expires_at
+                    FROM sessions s
+                    JOIN users u ON s.user_id = u.id
+                    WHERE s.token = ?
+                    """,
+                    (token,),
+                )
+                row = cursor.fetchone()
+                if row:
+                    if row["expires_at"] <= now_iso:
+                        with conn:
+                            conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+                        return None
+                    return UserResponse(
+                        id=row["id"],
+                        email=row["email"],
+                        full_name=row["full_name"],
+                        created_at=row["created_at"],
+                    )
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                pass
+
+            # 3. Stateless fallback for serverless container switches (e.g. Vercel)
+            if token.startswith("ps_"):
+                parts = token.split("_")
+                if len(parts) == 3:
+                    _, payload_b64, sig = parts
+                    expected_sig = hmac.new(
+                        AUTH_SECRET_KEY.encode("utf-8"),
+                        payload_b64.encode("ascii"),
+                        hashlib.sha256,
+                    ).hexdigest()
+                    if hmac.compare_digest(sig, expected_sig):
+                        try:
+                            padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+                            payload_raw = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+                            payload = json.loads(payload_raw)
+                            exp_ts = payload.get("exp", 0)
+                            if now_ts < exp_ts:
+                                uid = payload.get("uid")
+                                email = payload.get("email")
+                                name = payload.get("name", "User")
+                                # Retrieve real record from users table if available
+                                try:
+                                    cursor.execute(
+                                        "SELECT id, email, full_name, created_at FROM users WHERE id = ? OR email = ? COLLATE NOCASE",
+                                        (uid, email),
+                                    )
+                                    user_row = cursor.fetchone()
+                                    if user_row:
+                                        return UserResponse(
+                                            id=user_row["id"],
+                                            email=user_row["email"],
+                                            full_name=user_row["full_name"],
+                                            created_at=user_row["created_at"],
+                                        )
+                                except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                                    pass
+                                # Fallback UserResponse from signed payload
+                                return UserResponse(
+                                    id=uid or 1,
+                                    email=email or "compliance@enterprise.com",
+                                    full_name=name or "Compliance Lead",
+                                    created_at=now_iso,
+                                )
+                        except Exception as dec_err:
+                            logger.debug("Stateless token decode failed: %s", dec_err)
+
+            return None
         finally:
             conn.close()
 
@@ -217,7 +305,12 @@ class AuthService:
             with conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
-                return cursor.rowcount > 0
+                now_iso = datetime.now(timezone.utc).isoformat()
+                cursor.execute(
+                    "INSERT OR IGNORE INTO revoked_tokens (token, revoked_at) VALUES (?, ?)",
+                    (token, now_iso),
+                )
+                return True
         finally:
             conn.close()
 

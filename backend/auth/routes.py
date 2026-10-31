@@ -100,7 +100,14 @@ def register(
 
     # Automatically establish session after successful registration
     token, _, max_age = auth_service.create_session(user.id, remember_me=False)
-    is_secure = request.url.scheme == "https"
+    is_https = (
+        request.url.scheme == "https"
+        or request.headers.get("x-forwarded-proto") == "https"
+        or bool(request.headers.get("x-forwarded-ssl") == "on")
+        or bool(import_os := __import__("os").getenv("VERCEL"))
+    )
+    host = request.headers.get("host", "").lower()
+    is_secure = is_https and not ("localhost" in host or "127.0.0.1" in host)
 
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -115,6 +122,7 @@ def register(
     return {
         "status": "success",
         "message": "Account created successfully.",
+        "token": token,
         "user": user,
     }
 
@@ -166,7 +174,14 @@ def login(
         remember_me=payload.remember_me,
         old_token=old_token,
     )
-    is_secure = request.url.scheme == "https"
+    is_https = (
+        request.url.scheme == "https"
+        or request.headers.get("x-forwarded-proto") == "https"
+        or bool(request.headers.get("x-forwarded-ssl") == "on")
+        or bool(__import__("os").getenv("VERCEL"))
+    )
+    host = request.headers.get("host", "").lower()
+    is_secure = is_https and not ("localhost" in host or "127.0.0.1" in host)
 
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -181,6 +196,7 @@ def login(
     return {
         "status": "success",
         "message": "Signed in successfully.",
+        "token": token,
         "user": user,
     }
 

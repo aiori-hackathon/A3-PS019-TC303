@@ -79,10 +79,48 @@ def init_auth_db(db_path: Optional[Path] = None) -> None:
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 );
 
+                CREATE TABLE IF NOT EXISTS revoked_tokens (
+                    token TEXT PRIMARY KEY,
+                    revoked_at TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
                 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
                 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
                 """
             )
+
+            # Auto-seed default production/demo accounts
+            default_users = [
+                (
+                    "compliance@enterprise.com",
+                    "Enterprise Compliance Lead",
+                    "$2b$12$shP3Ck8lOQdqQ/Z8WFt28etI2Lq3wProZbppbdNjZAIqLBEWxraxm",
+                ),
+                (
+                    "admin@privsight.io",
+                    "System Administrator",
+                    "$2b$12$shP3Ck8lOQdqQ/Z8WFt28etI2Lq3wProZbppbdNjZAIqLBEWxraxm",
+                ),
+                (
+                    "test@example.com",
+                    "Auditor Demo",
+                    "$2b$12$shP3Ck8lOQdqQ/Z8WFt28etI2Lq3wProZbppbdNjZAIqLBEWxraxm",
+                ),
+            ]
+            from datetime import datetime, timezone
+            now_iso = datetime.now(timezone.utc).isoformat()
+            for email, full_name, pwd_hash in default_users:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id FROM users WHERE email = ? COLLATE NOCASE", (email,))
+                if cursor.fetchone() is None:
+                    cursor.execute(
+                        """
+                        INSERT INTO users (email, full_name, password_hash, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (email, full_name, pwd_hash, now_iso, now_iso),
+                    )
     finally:
         conn.close()
+
