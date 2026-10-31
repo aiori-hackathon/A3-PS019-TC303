@@ -126,29 +126,7 @@ const AssistantMessage = {
     row.id = `msg-${id}`;
     row.setAttribute('data-role', 'assistant');
 
-    const timeStr = metadata.timestamp ? new Date(metadata.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Assistant Header (Avatar + Brand + Tagline + Timestamp)
-    const header = document.createElement('div');
-    header.className = 'tracera-assistant-header';
-
-    const avatar = document.createElement('div');
-    avatar.className = 'tracera-assistant-avatar';
-    avatar.textContent = '⚡';
-
-    const brand = document.createElement('div');
-    brand.className = 'tracera-assistant-brand';
-    brand.innerHTML = `
-      <span class="tracera-assistant-name">TRACERA</span>
-      <span class="tracera-assistant-badge">BY PRIVSIGHT</span>
-      <span class="tracera-assistant-time">${timeStr}</span>
-    `;
-
-    header.appendChild(avatar);
-    header.appendChild(brand);
-    row.appendChild(header);
-
-    // Assistant Response Body Card
+    // Assistant Response Body Card (Actual AI response directly without repeated header)
     const bodyCard = document.createElement('div');
     bodyCard.className = 'tracera-assistant-body';
 
@@ -369,13 +347,6 @@ const ChatMessageList = {
     row.id = loadingId;
 
     row.innerHTML = `
-      <div class="tracera-assistant-header">
-        <div class="tracera-assistant-avatar">⚡</div>
-        <div class="tracera-assistant-brand">
-          <span class="tracera-assistant-name">TRACERA</span>
-          <span class="tracera-assistant-badge">ANALYZING</span>
-        </div>
-      </div>
       <div class="tracera-assistant-body" style="padding: 1rem 1.25rem;">
         <div style="display:flex; align-items:center; gap:0.65rem; color:var(--text-secondary); font-size:0.85rem;">
           <span class="status-pulse-dot" style="background:var(--accent-gold);"></span>
@@ -403,13 +374,6 @@ const ChatMessageList = {
     row.id = errorId;
 
     row.innerHTML = `
-      <div class="tracera-assistant-header">
-        <div class="tracera-assistant-avatar" style="background:var(--color-danger);">⚠️</div>
-        <div class="tracera-assistant-brand">
-          <span class="tracera-assistant-name" style="color:var(--color-danger);">TRACERA Alert</span>
-          <span class="tracera-assistant-badge" style="background:rgba(239,68,68,0.15); color:var(--color-danger);">ERROR</span>
-        </div>
-      </div>
       <div class="tracera-assistant-body" style="border-color:var(--color-danger); background:rgba(239, 68, 68, 0.05);">
         <p style="margin-bottom:0.75rem; color:var(--text-primary);">⚠️ <strong>Request Error:</strong> ${escapeHtml(errorText)}</p>
         <div style="display:flex; justify-content:flex-end;">
