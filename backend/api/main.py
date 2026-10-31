@@ -72,6 +72,7 @@ logger = logging.getLogger("privsight.api")
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
+PUBLIC_DIR = PROJECT_ROOT / "public"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 RULES_PATH = PROJECT_ROOT / "backend" / "config" / "rules.json"
 METADATA_PATH = PROJECT_ROOT / "backend" / "metadata" / "metadata.json"
@@ -1352,10 +1353,10 @@ if FRONTEND_DIR.exists():
     def serve_static_file(file_path: str):
         """Guaranteed static file serving with explicit MIME types for serverless environments."""
         target = (FRONTEND_DIR / file_path).resolve()
-        try:
-            target.relative_to(FRONTEND_DIR.resolve())
-        except ValueError:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        if not target.exists() and (PUBLIC_DIR / "static" / file_path).exists():
+            target = (PUBLIC_DIR / "static" / file_path).resolve()
+        elif not target.exists() and (PUBLIC_DIR / file_path).exists():
+            target = (PUBLIC_DIR / file_path).resolve()
 
         if not target.exists() or not target.is_file():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Static asset '{file_path}' not found")
@@ -1382,7 +1383,10 @@ if FRONTEND_DIR.exists():
     @app.get("/style.css", include_in_schema=False)
     def serve_direct_style_css():
         """Direct fallback route for style.css to prevent 404s when referenced without /static."""
-        return FileResponse(str(FRONTEND_DIR / "style.css"), media_type="text/css; charset=utf-8")
+        target = FRONTEND_DIR / "style.css"
+        if not target.exists() and (PUBLIC_DIR / "style.css").exists():
+            target = PUBLIC_DIR / "style.css"
+        return FileResponse(str(target), media_type="text/css; charset=utf-8")
 
     @app.get("/vendor/{path:path}", include_in_schema=False)
     def serve_direct_vendor(path: str):

@@ -7,14 +7,6 @@
   },
   "rewrites": [
     {
-      "source": "/static/(.*)",
-      "destination": "/frontend/$1"
-    },
-    {
-      "source": "/style.css",
-      "destination": "/frontend/style.css"
-    },
-    {
       "source": "/(.*)",
       "destination": "/api/index.py"
     }
