@@ -22,6 +22,26 @@ let activeCytoscapeInstances = {};
 let isSubmitting = false;
 let lastUserMessage = '';
 
+// Clean Enterprise Technical SVG Icons (Zero cartoon/emojis)
+const VIZ_ICONS = {
+  graph: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="10.5" y2="15.5"/><line x1="15.5" y1="7.5" x2="13.5" y2="15.5"/><line x1="9" y1="6" x2="15" y2="6"/></svg>`,
+  bar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  line: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  pie: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>`,
+  flowchart: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M7 10v4a2 2 0 0 0 2 2h5"/><polyline points="12 14 14 16 12 18"/></svg>`,
+  timeline: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  table: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
+  comparison: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="2"/><rect x="13" y="4" width="8" height="16" rx="2"/><line x1="7" y1="9" x2="7" y2="9.01"/><line x1="17" y1="9" x2="17" y2="9.01"/></svg>`,
+  step: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>`,
+  copy: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  retry: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+  check: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  zoomIn: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  zoomOut: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
+  fit: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`,
+  shield: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+};
+
 // ==========================================
 // 1. WELCOME SCREEN COMPONENT
 // ==========================================
@@ -148,7 +168,7 @@ const AssistantMessage = {
 
     // 1. Interactive Cytoscape Relationship Graph (if available)
     if (metadata.graph && metadata.graph.nodes && metadata.graph.nodes.length > 0) {
-      const graphCard = createVisualCard('🕸️', metadata.title || 'Relationship Topology Graph', 'RELATIONSHIP GRAPH');
+      const graphCard = createVisualCard(VIZ_ICONS.graph, metadata.title || 'Relationship Topology Graph', 'RELATIONSHIP GRAPH');
       const graphId = 'cy-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       const graphWrapper = document.createElement('div');
       graphWrapper.className = 'tracera-graph-container';
@@ -156,18 +176,18 @@ const AssistantMessage = {
 
       graphWrapper.innerHTML = `
         <div class="tracera-graph-toolbar">
-          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 1.25)" title="Zoom in">➕</button>
-          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 0.8)" title="Zoom out">➖</button>
-          <button class="tracera-graph-btn" onclick="fitGraph('${graphId}')" title="Fit to view">🎯 Fit</button>
+          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 1.25)" title="Zoom in">${VIZ_ICONS.zoomIn}</button>
+          <button class="tracera-graph-btn" onclick="zoomGraph('${graphId}', 0.8)" title="Zoom out">${VIZ_ICONS.zoomOut}</button>
+          <button class="tracera-graph-btn" onclick="fitGraph('${graphId}')" title="Fit to view">${VIZ_ICONS.fit} <span>Fit</span></button>
         </div>
         <div class="tracera-graph-legend">
           <div class="tracera-graph-legend-item">
-            <span class="tracera-legend-dot" style="background:#10B981;"></span>
-            <span>Verified FK</span>
+            <span class="tracera-legend-indicator verified"></span>
+            <span>VERIFIED FK</span>
           </div>
           <div class="tracera-graph-legend-item">
-            <span class="tracera-legend-dot" style="background:#D4A72C;"></span>
-            <span>Inferred Overlap</span>
+            <span class="tracera-legend-indicator inferred"></span>
+            <span>INFERRED OVERLAP</span>
           </div>
         </div>
       `;
@@ -182,8 +202,9 @@ const AssistantMessage = {
     // 2. Responsive SVG Charts (Bar, Line, Pie)
     const chartPayload = metadata.chart_data || (metadata.data && metadata.data.series ? metadata.data : null);
     if (chartPayload && chartPayload.series && chartPayload.series.length > 0) {
-      const chartType = (chartPayload.type || 'bar').toUpperCase();
-      const chartCard = createVisualCard('📊', metadata.title || chartPayload.title || `${chartType} Chart`, `${chartType} CHART`);
+      const chartType = (chartPayload.type || 'bar').toLowerCase();
+      const chartIcon = chartType === 'pie' ? VIZ_ICONS.pie : (chartType === 'line' ? VIZ_ICONS.line : VIZ_ICONS.bar);
+      const chartCard = createVisualCard(chartIcon, metadata.title || chartPayload.title || `${chartType.toUpperCase()} Chart`, `${chartType.toUpperCase()} CHART`);
       renderChart(chartCard, chartPayload, metadata.title);
       bodyCard.appendChild(chartCard);
     }
@@ -191,7 +212,7 @@ const AssistantMessage = {
     // 3. Process Flowchart (if available)
     const flowPayload = metadata.flowchart_data || (metadata.data && metadata.data.steps && metadata.response_type === 'flowchart' ? metadata.data : null);
     if (flowPayload && flowPayload.steps && flowPayload.steps.length > 0) {
-      const flowCard = createVisualCard('🔀', metadata.title || flowPayload.title || 'Process Flowchart', 'FLOWCHART');
+      const flowCard = createVisualCard(VIZ_ICONS.flowchart, metadata.title || flowPayload.title || 'Process Flowchart', 'FLOWCHART');
       renderFlowchart(flowCard, flowPayload, metadata.title);
       bodyCard.appendChild(flowCard);
     }
@@ -199,7 +220,7 @@ const AssistantMessage = {
     // 4. Comparative Schema & Governance Matrix (if available)
     const compPayload = metadata.comparison_data || (metadata.data && metadata.data.entities ? metadata.data : null);
     if (compPayload && compPayload.entities && compPayload.entities.length > 0) {
-      const compCard = createVisualCard('⚖️', metadata.title || compPayload.title || 'Comparative Matrix', 'COMPARISON');
+      const compCard = createVisualCard(VIZ_ICONS.comparison, metadata.title || compPayload.title || 'Comparative Matrix', 'COMPARISON');
       renderComparison(compCard, compPayload, metadata.title);
       bodyCard.appendChild(compCard);
     }
@@ -207,7 +228,7 @@ const AssistantMessage = {
     // 5. Step-by-Step Traversal Cards (if available)
     const stepPayload = metadata.steps || (metadata.data && metadata.data.steps && metadata.response_type === 'step_by_step' ? metadata.data.steps : null);
     if (stepPayload && Array.isArray(stepPayload) && stepPayload.length > 0 && !flowPayload) {
-      const stepCard = createVisualCard('🔢', metadata.title || 'Step-by-Step Relational Verification', 'STEP-BY-STEP');
+      const stepCard = createVisualCard(VIZ_ICONS.step, metadata.title || 'Step-by-Step Relational Verification', 'STEP-BY-STEP');
       renderStepByStep(stepCard, stepPayload, metadata.title);
       bodyCard.appendChild(stepCard);
     }
@@ -215,7 +236,7 @@ const AssistantMessage = {
     // 6. Structured Table (if available)
     const tblPayload = metadata.table_data || (metadata.data && metadata.data.table ? metadata.data.table : null);
     if (tblPayload && Array.isArray(tblPayload) && tblPayload.length > 0) {
-      const tblCard = createVisualCard('📋', metadata.title || 'Structured Relationship Matrix', 'STRUCTURED TABLE');
+      const tblCard = createVisualCard(VIZ_ICONS.table, metadata.title || 'Structured Relationship Matrix', 'STRUCTURED TABLE');
       renderStructuredTable(tblCard, tblPayload, metadata.title);
       bodyCard.appendChild(tblCard);
     }
@@ -223,7 +244,7 @@ const AssistantMessage = {
     // 7. Timeline Cards (if available)
     const timePayload = metadata.timeline_data || (metadata.data && metadata.data.timeline ? metadata.data.timeline : null);
     if (timePayload && Array.isArray(timePayload) && timePayload.length > 0) {
-      const timeCard = createVisualCard('⏱️', metadata.title || 'Chronological Event Timeline', 'TIMELINE');
+      const timeCard = createVisualCard(VIZ_ICONS.timeline, metadata.title || 'Chronological Event Timeline', 'TIMELINE');
       renderTimeline(timeCard, timePayload, metadata.title);
       bodyCard.appendChild(timeCard);
     }
@@ -246,14 +267,14 @@ const AssistantMessage = {
       const p = metadata.relationship_paths[0];
       const isVer = p.verification_status === 'Verified';
       const badgeStyle = isVer 
-        ? 'background:rgba(16, 185, 129, 0.15); color:#10B981; border:1px solid rgba(16, 185, 129, 0.3); font-size:0.68rem; font-weight:700;'
-        : 'background:rgba(212, 167, 44, 0.15); color:var(--accent-gold); border:1px solid rgba(212, 167, 44, 0.3); font-size:0.68rem; font-weight:700;';
-      pathBadges += `<span class="badge" style="${badgeStyle}">Path: ${escapeHtml(p.path_summary)} · ${escapeHtml(p.verification_status.toUpperCase())}</span>`;
+        ? 'background:rgba(16, 185, 129, 0.12); color:#10B981; border:1px solid rgba(16, 185, 129, 0.28); font-size:0.65rem; font-weight:700; font-family:var(--font-mono);'
+        : 'background:rgba(212, 167, 44, 0.12); color:var(--accent-gold); border:1px solid rgba(212, 167, 44, 0.28); font-size:0.65rem; font-weight:700; font-family:var(--font-mono);';
+      pathBadges += `<span class="badge" style="${badgeStyle}">PATH: ${escapeHtml(p.path_summary)} · ${escapeHtml(p.verification_status.toUpperCase())}</span>`;
     }
 
     badges.innerHTML = `
-      <span class="badge badge-status-complete" style="font-size:0.68rem; font-weight:700;">✔ Verified Schema Engine</span>
-      <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); font-size:0.68rem;">🔒 PII Masked</span>
+      <span class="badge badge-status-complete" style="font-size:0.65rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono);">${VIZ_ICONS.shield} VERIFIED SCHEMA ENGINE</span>
+      <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.28); font-size:0.65rem; display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono);">${VIZ_ICONS.check} PII MASKED</span>
       ${pathBadges}
     `;
 
@@ -263,18 +284,18 @@ const AssistantMessage = {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'tracera-action-btn';
     copyBtn.style.fontSize = '0.72rem';
-    copyBtn.innerHTML = '📋 Copy';
+    copyBtn.innerHTML = `${VIZ_ICONS.copy} <span>Copy</span>`;
     copyBtn.title = 'Copy response text';
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(content || '');
-      copyBtn.innerHTML = '✔ Copied!';
-      setTimeout(() => { copyBtn.innerHTML = '📋 Copy'; }, 2000);
+      copyBtn.innerHTML = `${VIZ_ICONS.check} <span>Copied!</span>`;
+      setTimeout(() => { copyBtn.innerHTML = `${VIZ_ICONS.copy} <span>Copy</span>`; }, 2000);
     };
 
     const retryBtn = document.createElement('button');
     retryBtn.className = 'tracera-action-btn';
     retryBtn.style.fontSize = '0.72rem';
-    retryBtn.innerHTML = '🔄 Retry';
+    retryBtn.innerHTML = `${VIZ_ICONS.retry} <span>Retry</span>`;
     retryBtn.title = 'Retry last question';
     retryBtn.onclick = () => {
       if (lastUserMessage) {
@@ -913,12 +934,17 @@ function escapeHtml(str) {
  * Responsive SVG Chart Generator (Bar, Line, Pie)
  * 100% native SVG with tooltips, legend, and readable axes.
  */
+/**
+ * Responsive SVG Chart Generator (Bar, Line, Pie)
+ * Clean Enterprise Technical Aesthetic (Zero cartoon/rainbow colors)
+ */
 function renderChart(container, chartData, title) {
   if (!chartData || !chartData.series || !Array.isArray(chartData.series) || chartData.series.length === 0) {
     const emptyNotice = document.createElement('div');
     emptyNotice.style.padding = '1rem';
-    emptyNotice.style.color = 'var(--text-muted)';
-    emptyNotice.style.fontSize = '0.8rem';
+    emptyNotice.style.color = 'var(--tracera-viz-text-muted)';
+    emptyNotice.style.fontSize = '0.78rem';
+    emptyNotice.style.fontFamily = 'var(--font-mono)';
     emptyNotice.textContent = 'No numerical series data available for this chart.';
     container.appendChild(emptyNotice);
     return;
@@ -926,7 +952,7 @@ function renderChart(container, chartData, title) {
 
   const chartType = (chartData.type || 'bar').toLowerCase();
   const series = chartData.series;
-  const colors = ['#10B981', '#D4A72C', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B', '#06B6D4'];
+  const ENTERPRISE_PALETTE = ['#D4A72C', '#10B981', '#38BDF8', '#818CF8', '#F59E0B', '#64748B'];
 
   const chartBox = document.createElement('div');
   chartBox.className = 'tracera-chart-container';
@@ -939,7 +965,7 @@ function renderChart(container, chartData, title) {
   if (chartType === 'pie') {
     // Pie / Donut Chart
     const total = series.reduce((sum, item) => sum + (Number(item.value) || 0), 0) || 1;
-    const cx = 130, cy = 130, r = 90, innerR = 45;
+    const cx = 125, cy = 125, r = 85, innerR = 48;
     let currentAngle = -Math.PI / 2;
 
     let pathsSvg = '';
@@ -961,35 +987,35 @@ function renderChart(container, chartData, title) {
       const iy2 = cy + innerR * Math.sin(startAngle);
 
       const largeArc = sliceAngle > Math.PI ? 1 : 0;
-      const color = colors[idx % colors.length];
+      const color = ENTERPRISE_PALETTE[idx % ENTERPRISE_PALETTE.length];
       const pct = Math.round((val / total) * 100);
 
-      const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2} Z`;
+      const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} L ${ix1.toFixed(1)} ${iy1.toFixed(1)} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2.toFixed(1)} ${iy2.toFixed(1)} Z`;
 
-      pathsSvg += `<path d="${d}" fill="${color}" stroke="#090D12" stroke-width="2" style="cursor:pointer; transition:opacity 0.2s;" data-label="${escapeHtml(slice.label)}" data-val="${val}" data-pct="${pct}%" class="tracera-chart-slice" />`;
+      pathsSvg += `<path d="${d}" fill="${color}" stroke="#0B0F17" stroke-width="2" style="cursor:pointer; transition:opacity 0.15s ease;" data-label="${escapeHtml(slice.label)}" data-val="${val}" data-pct="${pct}%" class="tracera-chart-slice" />`;
     });
 
-    // Right Legend
+    // Right Legend Table
     let legendSvg = '';
     series.forEach((slice, idx) => {
-      const color = colors[idx % colors.length];
+      const color = ENTERPRISE_PALETTE[idx % ENTERPRISE_PALETTE.length];
       const val = slice.value;
       const pct = Math.round((val / total) * 100);
-      const ly = 35 + idx * 24;
+      const ly = 32 + idx * 26;
       if (ly < 250) {
         legendSvg += `
-          <rect x="265" y="${ly}" width="12" height="12" rx="3" fill="${color}" />
-          <text x="285" y="${ly + 10}" fill="#E5E7EB" font-size="11" font-family="system-ui, sans-serif" font-weight="600">${escapeHtml(slice.label)}</text>
-          <text x="450" y="${ly + 10}" fill="#9CA3AF" font-size="11" font-family="monospace" text-anchor="end">${val} (${pct}%)</text>
+          <rect x="250" y="${ly}" width="10" height="10" rx="2" fill="${color}" />
+          <text x="268" y="${ly + 9}" fill="#E2E8F0" font-size="11" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600">${escapeHtml(slice.label)}</text>
+          <text x="460" y="${ly + 9}" fill="#94A3B8" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="end">${val} (${pct}%)</text>
         `;
       }
     });
 
     chartBox.innerHTML += `
-      <svg viewBox="0 0 480 260" class="tracera-chart-svg">
+      <svg viewBox="0 0 480 250" class="tracera-chart-svg">
         ${pathsSvg}
-        <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif">TOTAL</text>
-        <text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#F3F4F6" font-size="14" font-weight="800" font-family="monospace">${total}</text>
+        <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#64748B" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" letter-spacing="0.08em">TOTAL</text>
+        <text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#F8FAFC" font-size="16" font-weight="700" font-family="'JetBrains Mono', monospace">${total}</text>
         ${legendSvg}
       </svg>
     `;
@@ -997,7 +1023,7 @@ function renderChart(container, chartData, title) {
   } else if (chartType === 'line') {
     // Line Chart
     const maxVal = Math.max(...series.map(s => Number(s.value) || 0), 10);
-    const w = 540, h = 240, padL = 60, padR = 30, padT = 30, padB = 40;
+    const w = 540, h = 240, padL = 50, padR = 25, padT = 25, padB = 38;
     const plotW = w - padL - padR;
     const plotH = h - padT - padB;
 
@@ -1011,8 +1037,8 @@ function renderChart(container, chartData, title) {
       points.push({ x, y, label: pt.label, value: val });
     });
 
-    const ptsStr = points.map(p => `${p.x},${p.y}`).join(' ');
-    const areaStr = `${points[0].x},${padT + plotH} ` + ptsStr + ` ${points[points.length - 1].x},${padT + plotH}`;
+    const ptsStr = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const areaStr = `${points[0].x.toFixed(1)},${padT + plotH} ` + ptsStr + ` ${points[points.length - 1].x.toFixed(1)},${padT + plotH}`;
 
     // Grid lines & Y ticks
     let gridLines = '';
@@ -1020,16 +1046,16 @@ function renderChart(container, chartData, title) {
     ticks.forEach(t => {
       const ty = padT + plotH - (t / maxVal) * plotH;
       gridLines += `
-        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="#1E293B" stroke-dasharray="3 3" />
-        <text x="${padL - 10}" y="${ty + 4}" fill="#6B7280" font-size="10" font-family="monospace" text-anchor="end">${t}</text>
+        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2 4" />
+        <text x="${padL - 10}" y="${ty + 4}" fill="#64748B" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="end">${t}</text>
       `;
     });
 
     let dotsSvg = '';
     points.forEach((p) => {
       dotsSvg += `
-        <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#D4A72C" stroke="#090D12" stroke-width="2" class="tracera-chart-dot" data-label="${escapeHtml(p.label)}" data-val="${p.value}" style="cursor:pointer;" />
-        <text x="${p.x}" y="${padT + plotH + 20}" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">${escapeHtml(p.label)}</text>
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#D4A72C" stroke="#0B0F17" stroke-width="2" class="tracera-chart-dot" data-label="${escapeHtml(p.label)}" data-val="${p.value}" style="cursor:pointer;" />
+        <text x="${p.x.toFixed(1)}" y="${padT + plotH + 18}" fill="#94A3B8" font-size="10" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">${escapeHtml(p.label)}</text>
       `;
     });
 
@@ -1037,35 +1063,35 @@ function renderChart(container, chartData, title) {
       <svg viewBox="0 0 ${w} ${h}" class="tracera-chart-svg">
         <defs>
           <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#D4A72C" stop-opacity="0.25"/>
+            <stop offset="0%" stop-color="#D4A72C" stop-opacity="0.16"/>
             <stop offset="100%" stop-color="#D4A72C" stop-opacity="0.0"/>
           </linearGradient>
         </defs>
         ${gridLines}
         <polygon points="${areaStr}" fill="url(#lineGrad)" />
-        <polyline points="${ptsStr}" fill="none" stroke="#D4A72C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        <polyline points="${ptsStr}" fill="none" stroke="#D4A72C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         ${dotsSvg}
-        <text x="${w / 2}" y="${h - 4}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif">${escapeHtml(chartData.x_label || 'Timeline')}</text>
-        <text x="14" y="${h / 2}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Count')}</text>
+        <text x="${w / 2}" y="${h - 4}" fill="#64748B" font-size="9" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" letter-spacing="0.08em" text-transform="uppercase">${escapeHtml(chartData.x_label || 'Timeline')}</text>
+        <text x="14" y="${h / 2}" fill="#64748B" font-size="9" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" letter-spacing="0.08em" text-transform="uppercase" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Count')}</text>
       </svg>
     `;
 
   } else {
     // Bar Chart
     const maxVal = Math.max(...series.map(s => Number(s.value) || 0), 10);
-    const w = 540, h = 240, padL = 60, padR = 30, padT = 30, padB = 40;
+    const w = 540, h = 240, padL = 50, padR = 25, padT = 25, padB = 38;
     const plotW = w - padL - padR;
     const plotH = h - padT - padB;
-    const barWidth = Math.min(48, Math.max(16, (plotW / series.length) * 0.65));
     const step = plotW / series.length;
+    const barWidth = Math.min(38, Math.max(16, step * 0.58));
 
     let gridLines = '';
     const ticks = [0, Math.round(maxVal / 2), maxVal];
     ticks.forEach(t => {
       const ty = padT + plotH - (t / maxVal) * plotH;
       gridLines += `
-        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="#1E293B" stroke-dasharray="3 3" />
-        <text x="${padL - 10}" y="${ty + 4}" fill="#6B7280" font-size="10" font-family="monospace" text-anchor="end">${t}</text>
+        <line x1="${padL}" y1="${ty}" x2="${w - padR}" y2="${ty}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2 4" />
+        <text x="${padL - 10}" y="${ty + 4}" fill="#64748B" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="end">${t}</text>
       `;
     });
 
@@ -1075,12 +1101,12 @@ function renderChart(container, chartData, title) {
       const barH = (val / maxVal) * plotH;
       const x = padL + i * step + (step - barWidth) / 2;
       const y = padT + plotH - barH;
-      const color = colors[i % colors.length];
+      const color = ENTERPRISE_PALETTE[i % ENTERPRISE_PALETTE.length];
 
       barsSvg += `
-        <rect x="${x}" y="${y}" width="${barWidth}" height="${barH}" rx="4" fill="${color}" opacity="0.88" class="tracera-chart-bar" data-label="${escapeHtml(bar.label)}" data-val="${val}" style="cursor:pointer; transition:opacity 0.2s;" />
-        <text x="${x + barWidth / 2}" y="${y - 6}" fill="#E5E7EB" font-size="10" font-family="monospace" font-weight="700" text-anchor="middle">${val}</text>
-        <text x="${x + barWidth / 2}" y="${padT + plotH + 18}" fill="#9CA3AF" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">${escapeHtml(bar.label)}</text>
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth}" height="${barH.toFixed(1)}" rx="3" fill="${color}" fill-opacity="0.9" class="tracera-chart-bar" data-label="${escapeHtml(bar.label)}" data-val="${val}" style="cursor:pointer; transition:opacity 0.15s ease;" />
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" fill="#F8FAFC" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600" text-anchor="middle">${val}</text>
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${padT + plotH + 18}" fill="#94A3B8" font-size="10" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">${escapeHtml(bar.label)}</text>
       `;
     });
 
@@ -1088,8 +1114,8 @@ function renderChart(container, chartData, title) {
       <svg viewBox="0 0 ${w} ${h}" class="tracera-chart-svg">
         ${gridLines}
         ${barsSvg}
-        <text x="${w / 2}" y="${h - 4}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif">${escapeHtml(chartData.x_label || 'Category')}</text>
-        <text x="14" y="${h / 2}" fill="#6B7280" font-size="9" text-anchor="middle" font-family="system-ui, sans-serif" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Records / Gaps')}</text>
+        <text x="${w / 2}" y="${h - 4}" fill="#64748B" font-size="9" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" letter-spacing="0.08em" text-transform="uppercase">${escapeHtml(chartData.x_label || 'Category')}</text>
+        <text x="14" y="${h / 2}" fill="#64748B" font-size="9" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" letter-spacing="0.08em" text-transform="uppercase" transform="rotate(-90 14,${h/2})">${escapeHtml(chartData.y_label || 'Records / Gaps')}</text>
       </svg>
     `;
   }
@@ -1115,6 +1141,7 @@ function renderChart(container, chartData, title) {
 
 /**
  * Process Flowchart Generator
+ * Clean enterprise process blocks, decision gates, and SVG arrows
  */
 function renderFlowchart(container, flowchartData, title) {
   if (!flowchartData || !flowchartData.steps || !Array.isArray(flowchartData.steps)) return;
@@ -1130,27 +1157,37 @@ function renderFlowchart(container, flowchartData, title) {
     const stepNum = step.step_num || (idx + 1);
     const stepTitle = step.title || `Stage ${stepNum}`;
     const stepDesc = step.description || '';
-    const badge = step.badge || (isDecision ? 'DECISION GATE' : 'Verified Step');
+    const badge = step.badge || (isDecision ? 'DECISION GATE' : 'Verified Stage');
 
     let branchHtml = '';
     if (step.decision_branches && Array.isArray(step.decision_branches)) {
       branchHtml = `
-        <div class="tracera-flow-decision-branches" style="display:flex; gap:0.5rem; margin-top:0.45rem; flex-wrap:wrap;">
-          ${step.decision_branches.map(b => `
-            <div style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:4px; background:var(--bg-elevated); border:1px solid ${b.color || 'var(--border-color)'}; color:#E5E7EB;">
-              <strong style="color:${b.color || 'var(--accent-gold)'};">${escapeHtml(b.condition)}:</strong> ${escapeHtml(b.outcome)}
-            </div>
-          `).join('')}
+        <div class="tracera-flow-decision-branches">
+          ${step.decision_branches.map(b => {
+            const isVer = (b.condition || '').toLowerCase().includes('foreign key') || (b.outcome || '').toLowerCase().includes('verified');
+            const pillStyle = isVer
+              ? 'background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.28); color:#10B981;'
+              : 'background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.28); color:#F59E0B;';
+            return `
+              <div style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:4px; ${pillStyle} font-family:var(--font-sans);">
+                <strong>${escapeHtml(b.condition)}:</strong> ${escapeHtml(b.outcome)}
+              </div>
+            `;
+          }).join('')}
         </div>
       `;
     }
 
+    const badgeStyle = isDecision
+      ? 'background:rgba(212,167,44,0.12); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.28); font-size:0.65rem; font-weight:700; font-family:var(--font-mono);'
+      : 'background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.28); font-size:0.65rem; font-weight:700; font-family:var(--font-mono);';
+
     stepEl.innerHTML = `
-      <div class="tracera-flow-step-num" style="${isDecision ? 'background:rgba(212,167,44,0.2); color:var(--accent-gold); border:1px solid var(--accent-gold);' : ''}">${isDecision ? '◆' : stepNum}</div>
+      <div class="tracera-flow-step-num" style="${isDecision ? 'background:rgba(212,167,44,0.18); color:var(--accent-gold); border-color:var(--accent-gold);' : ''}">${isDecision ? '◆' : (stepNum < 10 ? '0' + stepNum : stepNum)}</div>
       <div class="tracera-flow-step-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-          <div class="tracera-flow-step-title" style="${isDecision ? 'color:var(--accent-gold); font-weight:700;' : ''}">${escapeHtml(stepTitle)}</div>
-          <span class="badge ${isDecision ? '' : 'badge-status-complete'}" style="${isDecision ? 'background:rgba(212,167,44,0.18); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3); font-size:0.68rem; font-weight:700;' : 'font-size:0.68rem;'}">${escapeHtml(badge)}</span>
+          <div class="tracera-flow-step-title" style="${isDecision ? 'color:var(--accent-gold);' : ''}">${escapeHtml(stepTitle)}</div>
+          <span class="badge" style="${badgeStyle}">${escapeHtml(badge.toUpperCase())}</span>
         </div>
         <div class="tracera-flow-step-desc">${escapeHtml(stepDesc)}</div>
         ${branchHtml}
@@ -1159,11 +1196,11 @@ function renderFlowchart(container, flowchartData, title) {
 
     flowBox.appendChild(stepEl);
 
-    // Connector Arrow
+    // Connector Arrow (Precision SVG)
     if (idx < flowchartData.steps.length - 1) {
       const arrow = document.createElement('div');
       arrow.className = 'tracera-flow-arrow';
-      arrow.innerHTML = '⬇';
+      arrow.innerHTML = `<svg width="12" height="18" viewBox="0 0 12 18" fill="none"><line x1="6" y1="0" x2="6" y2="13" stroke="#334155" stroke-width="1.5"/><polyline points="2,9 6,13 10,9" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       flowBox.appendChild(arrow);
     }
   });
@@ -1188,7 +1225,7 @@ function renderStepByStep(container, steps, title) {
     const descText = s.description || (typeof s === 'string' ? s : '');
 
     card.innerHTML = `
-      <div class="tracera-step-index">STEP ${num}</div>
+      <div class="tracera-step-index">STEP ${num < 10 ? '0' + num : num}</div>
       <div class="tracera-step-body">
         <div class="tracera-step-body-title">${escapeHtml(titleText)}</div>
         <div class="tracera-step-body-desc">${escapeHtml(descText)}</div>
@@ -1220,7 +1257,7 @@ function renderComparison(container, comparisonData, title) {
   tableHtml += '</tr></thead><tbody>';
 
   attributes.forEach(attr => {
-    tableHtml += `<tr><td style="font-weight: 700; color: var(--accent-gold);">${escapeHtml(attr.attribute || '')}</td>`;
+    tableHtml += `<tr><td style="font-weight: 600; color: var(--tracera-viz-accent); font-family:var(--font-mono); font-size:0.75rem;">${escapeHtml(attr.attribute || '')}</td>`;
     entities.forEach(ent => {
       const val = (attr.values && attr.values[ent] !== undefined) ? attr.values[ent] : '-';
       tableHtml += `<td>${escapeHtml(String(val))}</td>`;
@@ -1243,10 +1280,10 @@ function renderStructuredTable(container, tblPayload, title) {
   tableWrapper.className = 'tracera-table-wrapper';
 
   const cols = Object.keys(tblPayload[0]);
-  let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
+  let tableHtml = '<table class="data-table"><thead><tr>';
   cols.forEach(c => {
     const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
-    tableHtml += `<th style="padding:0.6rem 0.75rem; text-align:left;">${escapeHtml(formattedTitle)}</th>`;
+    tableHtml += `<th>${escapeHtml(formattedTitle)}</th>`;
   });
   tableHtml += '</tr></thead><tbody>';
 
@@ -1255,14 +1292,19 @@ function renderStructuredTable(container, tblPayload, title) {
     cols.forEach(c => {
       let val = rowItem[c];
       if (val === null || val === undefined) val = '-';
-      if (c.includes('status')) {
-        val = `<span class="badge badge-status-complete">${escapeHtml(String(val))}</span>`;
-      } else if (c.includes('cardinality')) {
-        val = `<span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
+      const cLower = c.toLowerCase();
+      if (cLower.includes('status')) {
+        const isVer = String(val).toLowerCase().includes('verified') || String(val).toLowerCase().includes('complete');
+        const badgeStyle = isVer
+          ? 'background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.28); color:#10B981;'
+          : 'background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.28); color:#F59E0B;';
+        val = `<span class="badge" style="${badgeStyle} font-size:0.65rem; font-weight:700; text-transform:uppercase; font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
+      } else if (cLower.includes('cardinality') || cLower.includes('key') || cLower.includes('id') || cLower.includes('column') || cLower.includes('count')) {
+        val = `<span style="font-family:var(--font-mono); font-size:0.75rem; color:#E2E8F0;">${escapeHtml(String(val))}</span>`;
       } else {
         val = escapeHtml(String(val));
       }
-      tableHtml += `<td style="padding:0.5rem 0.75rem; border-top:1px solid var(--border-color);">${val}</td>`;
+      tableHtml += `<td>${val}</td>`;
     });
     tableHtml += '</tr>';
   });
@@ -1274,45 +1316,59 @@ function renderStructuredTable(container, tblPayload, title) {
 
 /**
  * Timeline Generator
+ * Vertical spine with node markers, timestamps, and provenance tags
  */
 function renderTimeline(container, timePayload, title) {
   if (!timePayload || !Array.isArray(timePayload) || timePayload.length === 0) return;
 
   const timelineWrapper = document.createElement('div');
-  timelineWrapper.style.margin = '0.5rem 0';
-  timelineWrapper.style.display = 'flex';
-  timelineWrapper.style.flexDirection = 'column';
-  timelineWrapper.style.gap = '0.6rem';
+  timelineWrapper.className = 'tracera-timeline-container';
+
+  const spine = document.createElement('div');
+  spine.className = 'tracera-timeline-spine';
+  timelineWrapper.appendChild(spine);
 
   timePayload.forEach(ev => {
-    const card = document.createElement('div');
-    card.style.background = 'var(--bg-elevated)';
-    card.style.border = '1px solid var(--border-color)';
-    card.style.borderRadius = 'var(--radius-sm)';
-    card.style.padding = '0.65rem 0.9rem';
-    card.style.display = 'flex';
-    card.style.justifyContent = 'space-between';
-    card.style.alignItems = 'center';
+    const item = document.createElement('div');
+    item.className = 'tracera-timeline-item';
 
-    const sourceBadge = ev.source ? `<span class="badge" style="background:var(--bg-main); color:var(--text-muted); font-size:0.65rem; border:1px solid var(--border-color); margin-top:0.25rem; display:inline-block;">Source: ${escapeHtml(ev.source)}</span>` : '';
-    const dateBadge = (ev.has_timestamp === false || !ev.date)
-      ? '<span class="badge" style="background:rgba(239,68,68,0.15); color:#EF4444; font-size:0.68rem;">Missing Timestamp</span>'
-      : `<span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">${escapeHtml(ev.date)}</span>`;
+    const hasTime = ev.has_timestamp !== false && ev.date;
+    const nodeDot = document.createElement('div');
+    nodeDot.className = 'tracera-timeline-node';
+    if (!hasTime) {
+      nodeDot.style.borderColor = '#64748B';
+    }
+    item.appendChild(nodeDot);
+
+    const card = document.createElement('div');
+    card.className = 'tracera-timeline-card';
+
+    const sourceBadge = ev.source 
+      ? `<span style="font-size:0.65rem; color:#64748B; background:rgba(0,0,0,0.3); border:1px solid #1E2738; padding:2px 6px; border-radius:3px; display:inline-block; margin-top:0.35rem; font-family:var(--font-mono);">Source: ${escapeHtml(ev.source)}</span>` 
+      : '';
+
+    const dateBadge = !hasTime
+      ? '<span class="badge" style="background:rgba(255,255,255,0.04); color:#94A3B8; border:1px solid rgba(255,255,255,0.08); font-size:0.65rem; font-family:var(--font-mono);">TIMESTAMP: NOT RECORDED</span>'
+      : `<span class="badge" style="background:rgba(212,167,44,0.1); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.25); font-family:var(--font-mono); font-size:0.68rem;">${escapeHtml(ev.date)}</span>`;
 
     card.innerHTML = `
-      <div>
-        <div style="font-weight:700; font-size:0.82rem; color:var(--text-primary); margin-bottom:0.15rem;">
-          ${escapeHtml(ev.entity || 'Event')}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+        <div>
+          <div style="font-weight:600; font-size:0.84rem; color:var(--tracera-viz-text-primary); margin-bottom:0.15rem;">
+            ${escapeHtml(ev.entity || 'Event Milestone')}
+          </div>
+          <div style="font-size:0.76rem; color:var(--tracera-viz-text-secondary); line-height:1.45;">${escapeHtml(ev.description || '')}</div>
+          ${sourceBadge}
         </div>
-        <div style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(ev.description || '')}</div>
-        ${sourceBadge}
-      </div>
-      <div style="text-align:right;">
-        ${dateBadge}
+        <div style="text-align:right; flex-shrink:0;">
+          ${dateBadge}
+        </div>
       </div>
     `;
-    timelineWrapper.appendChild(card);
+    item.appendChild(card);
+    timelineWrapper.appendChild(item);
   });
+
   container.appendChild(timelineWrapper);
 }
 
@@ -1330,32 +1386,32 @@ function openNodeModal(data) {
   const cols = attrs.columns || [];
   const pks = attrs.primary_keys || (data.primary_key ? [data.primary_key] : []);
 
-  titleEl.innerHTML = `<span>Entity Node:</span> <strong style="color:#FFF;">${escapeHtml(data.label)}</strong>`;
+  titleEl.innerHTML = `<span style="color:var(--text-secondary); font-size:0.85rem; font-weight:500;">Entity Node:</span> <strong style="color:#FFF;">${escapeHtml(data.label)}</strong>`;
   bodyEl.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:0.65rem; font-size:0.83rem;">
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Entity Name:</span>
-        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.label)}</strong>
+        <strong style="color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(data.label)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Primary Dataset / Table:</span>
-        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.source || data.id)}</strong>
+        <strong style="color:#E5E7EB; font-family:var(--font-mono);">${escapeHtml(data.source || data.id)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Primary Key(s):</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(pks.length > 0 ? pks.join(', ') : 'None')}</span>
+        <span class="badge" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">${escapeHtml(pks.length > 0 ? pks.join(', ') : 'None')}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Entity Classification:</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold);">${escapeHtml(data.type || 'Personal Data Domain')}</span>
+        <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.28); font-size:0.7rem;">${escapeHtml(data.type || 'Personal Data Domain')}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Verification Level:</span>
-        <span class="badge badge-status-complete">100% Deterministic Schema Grounded</span>
+        <span class="badge badge-status-complete" style="font-size:0.7rem;">100% Deterministic Schema Grounded</span>
       </div>
       <div style="margin-top:0.35rem;">
-        <span style="color:var(--text-secondary); font-size:0.75rem; display:block; margin-bottom:0.25rem;">Discovered Attributes & Columns (${cols.length}):</span>
-        <div style="padding:0.5rem 0.75rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.72rem; color:#9CA3AF; max-height:80px; overflow-y:auto;">
+        <span style="color:var(--text-secondary); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; display:block; margin-bottom:0.3rem;">Discovered Attributes & Columns (${cols.length}):</span>
+        <div style="padding:0.6rem 0.85rem; background:#0B0F17; border:1px solid #1E2738; border-radius:4px; font-family:var(--font-mono); font-size:0.72rem; color:#94A3B8; max-height:85px; overflow-y:auto; line-height:1.45;">
           ${escapeHtml(cols.join(', ') || 'customer_id, name, email, phone, created_at')}
         </div>
       </div>
@@ -1373,36 +1429,36 @@ function openEdgeModal(data) {
   const isVerified = data.status === 'verified';
   const confPct = Math.round((data.confidence !== undefined ? data.confidence : 1.0) * 100);
 
-  titleEl.innerHTML = `<span>Relationship:</span> <strong style="color:#FFF;">${escapeHtml(data.source_dataset || data.source)} ➔ ${escapeHtml(data.target_dataset || data.target)}</strong>`;
+  titleEl.innerHTML = `<span style="color:var(--text-secondary); font-size:0.85rem; font-weight:500;">Relationship:</span> <strong style="color:#FFF;">${escapeHtml(data.source_dataset || data.source)} ➔ ${escapeHtml(data.target_dataset || data.target)}</strong>`;
   bodyEl.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:0.65rem; font-size:0.83rem;">
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Source Table:</span>
-        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.source_dataset || data.source)}</strong>
+        <strong style="color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(data.source_dataset || data.source)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Source Column:</span>
-        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.source_field || 'customer_id')}</strong>
+        <strong style="color:#E5E7EB; font-family:var(--font-mono);">${escapeHtml(data.source_field || 'customer_id')}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Destination Table:</span>
-        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.target_dataset || data.target)}</strong>
+        <strong style="color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(data.target_dataset || data.target)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Destination Column:</span>
-        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.target_field || 'customer_id')}</strong>
+        <strong style="color:#E5E7EB; font-family:var(--font-mono);">${escapeHtml(data.target_field || 'customer_id')}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Relationship Type:</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.relationship_type || 'Foreign Key Constraint')} (${escapeHtml(data.label || '1:N')})</span>
+        <span class="badge" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">${escapeHtml(data.relationship_type || 'Foreign Key Constraint')} (${escapeHtml(data.label || '1:N')})</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1E2738; padding-bottom:0.4rem;">
         <span style="color:var(--text-secondary);">Verification Status:</span>
-        <span class="badge ${isVerified ? 'badge-status-complete' : ''}" style="${!isVerified ? 'background:rgba(212,167,44,0.15); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3);' : ''}">${isVerified ? 'VERIFIED CONSTRAINT' : 'INFERRED VALUE OVERLAP'} (${confPct}%)</span>
+        <span class="badge" style="${isVerified ? 'background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.28);' : 'background:rgba(245,158,11,0.12); color:#F59E0B; border:1px solid rgba(245,158,11,0.28);'} font-size:0.7rem; font-weight:700;">${isVerified ? 'VERIFIED CONSTRAINT' : 'INFERRED VALUE OVERLAP'} (${confPct}%)</span>
       </div>
       <div style="margin-top:0.35rem;">
-        <span style="color:var(--text-secondary); font-size:0.75rem; display:block; margin-bottom:0.25rem;">Technical Evidence & Join Provenance:</span>
-        <div style="padding:0.6rem 0.85rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.75rem; color:#E5E7EB; line-height:1.4;">
+        <span style="color:var(--text-secondary); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; display:block; margin-bottom:0.3rem;">Technical Evidence & Join Provenance:</span>
+        <div style="padding:0.6rem 0.85rem; background:#0B0F17; border:1px solid #1E2738; border-radius:4px; font-family:var(--font-mono); font-size:0.73rem; color:#E5E7EB; line-height:1.45;">
           ${escapeHtml(data.evidence || 'Database Foreign Key constraint validated by PrivSight Schema Engine.')}
         </div>
       </div>
@@ -1469,33 +1525,54 @@ function initCytoscapeGraph(containerId, graphData) {
       {
         selector: 'node',
         style: {
-          'background-color': '#0C2B1E',
-          'border-width': 2,
-          'border-color': '#D4A72C',
+          'shape': 'round-rectangle',
+          'background-color': '#111622',
+          'border-width': 1.5,
+          'border-color': '#2A364F',
           'label': 'data(label)',
-          'color': '#EAEAEA',
-          'font-size': '10px',
-          'font-family': 'monospace',
-          'font-weight': 'bold',
+          'color': '#F1F5F9',
+          'font-size': '11px',
+          'font-family': 'Plus Jakarta Sans, sans-serif',
+          'font-weight': '600',
           'text-valign': 'center',
           'text-halign': 'center',
-          'width': '58px',
-          'height': '58px',
-          'text-wrap': 'wrap',
-          'text-max-width': '52px',
+          'width': '138px',
+          'height': '38px',
+          'text-wrap': 'ellipsis',
+          'text-max-width': '124px',
           'cursor': 'pointer',
+          'shadow-blur': 8,
+          'shadow-color': 'rgba(0, 0, 0, 0.4)',
+          'shadow-offset-y': 2,
+        }
+      },
+      {
+        selector: 'node:selected',
+        style: {
+          'border-color': '#D4A72C',
+          'border-width': 2,
+          'background-color': '#161D2B',
+          'shadow-blur': 12,
+          'shadow-color': 'rgba(212, 167, 44, 0.35)',
         }
       },
       {
         selector: 'edge',
         style: {
-          'width': 2.5,
+          'width': 1.5,
           'curve-style': 'bezier',
           'label': 'data(label)',
-          'font-size': '8px',
-          'font-family': 'monospace',
+          'font-size': '9px',
+          'font-family': 'JetBrains Mono, monospace',
           'text-rotation': 'autorotate',
           'text-margin-y': -8,
+          'text-background-color': '#0B0F17',
+          'text-background-opacity': 0.9,
+          'text-background-padding': '2px 5px',
+          'text-background-shape': 'round-rectangle',
+          'text-border-color': '#1E2738',
+          'text-border-width': 1,
+          'text-border-opacity': 0.8,
           'cursor': 'pointer',
         }
       },
@@ -1505,26 +1582,38 @@ function initCytoscapeGraph(containerId, graphData) {
           'line-color': '#10B981',
           'target-arrow-color': '#10B981',
           'target-arrow-shape': 'triangle',
+          'arrow-scale': 0.8,
           'line-style': 'solid',
-          'color': '#10B981',
+          'color': '#34D399',
         }
       },
       {
         selector: 'edge[status = "inferred"]',
         style: {
+          'line-color': '#F59E0B',
+          'target-arrow-color': '#F59E0B',
+          'target-arrow-shape': 'triangle',
+          'arrow-scale': 0.8,
+          'line-style': 'dashed',
+          'line-dash-pattern': [5, 4],
+          'color': '#FBBF24',
+        }
+      },
+      {
+        selector: 'edge:selected',
+        style: {
+          'width': 2.5,
           'line-color': '#D4A72C',
           'target-arrow-color': '#D4A72C',
-          'target-arrow-shape': 'triangle',
-          'line-style': 'dashed',
-          'color': '#D4A72C',
+          'color': '#F4B942',
         }
       }
     ],
     layout: {
       name: 'breadthfirst',
       directed: true,
-      padding: 24,
-      spacingFactor: 1.25,
+      padding: 35,
+      spacingFactor: 1.35,
     }
   });
 
