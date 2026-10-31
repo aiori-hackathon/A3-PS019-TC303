@@ -1348,10 +1348,41 @@ if FRONTEND_DIR.exists():
         """Backwards-compatible route redirecting to TRACERA."""
         return _require_auth_page(request, "tracera.html")
 
+    @app.get("/static/{file_path:path}", include_in_schema=False)
+    def serve_static_file(file_path: str):
+        """Guaranteed static file serving with explicit MIME types for serverless environments."""
+        target = (FRONTEND_DIR / file_path).resolve()
+        try:
+            target.relative_to(FRONTEND_DIR.resolve())
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+        if not target.exists() or not target.is_file():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Static asset '{file_path}' not found")
+
+        ext = target.suffix.lower()
+        content_types = {
+            ".css": "text/css; charset=utf-8",
+            ".js": "application/javascript; charset=utf-8",
+            ".svg": "image/svg+xml",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".ico": "image/x-icon",
+            ".woff": "font/woff",
+            ".woff2": "font/woff2",
+            ".ttf": "font/ttf",
+            ".json": "application/json; charset=utf-8",
+            ".html": "text/html; charset=utf-8",
+        }
+        media_type = content_types.get(ext, "application/octet-stream")
+        return FileResponse(str(target), media_type=media_type)
+
     @app.get("/style.css", include_in_schema=False)
     def serve_direct_style_css():
         """Direct fallback route for style.css to prevent 404s when referenced without /static."""
-        return FileResponse(str(FRONTEND_DIR / "style.css"), media_type="text/css")
+        return FileResponse(str(FRONTEND_DIR / "style.css"), media_type="text/css; charset=utf-8")
 
     @app.get("/vendor/{path:path}", include_in_schema=False)
     def serve_direct_vendor(path: str):
