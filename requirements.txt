@@ -32,7 +32,8 @@ odfpy>=1.4.1               # ODS OpenDocument spreadsheet parser
 ruamel.yaml>=0.18.0        # YAML parser
 defusedxml>=0.7.1          # Secure XML parser
 
-# ── Utilities ──────────────────────────────────
+# ── Utilities & Authentication ─────────────────
+bcrypt>=4.0.0              # cryptographic password hashing
 python-multipart>=0.0.12   # form/file uploads in FastAPI
 aiofiles>=24.1.0           # async file I/O
 bcrypt

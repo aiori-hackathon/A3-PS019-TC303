@@ -27,6 +27,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 import re
 import sqlite3
 import threading
@@ -74,8 +75,15 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 RULES_PATH = PROJECT_ROOT / "backend" / "config" / "rules.json"
 METADATA_PATH = PROJECT_ROOT / "backend" / "metadata" / "metadata.json"
-DATA_UPLOADS_DIR = PROJECT_ROOT / "data" / "uploads"
-DATA_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+if os.getenv("VERCEL"):
+    DATA_UPLOADS_DIR = Path("/tmp") / "uploads"
+else:
+    DATA_UPLOADS_DIR = PROJECT_ROOT / "data" / "uploads"
+try:
+    DATA_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    DATA_UPLOADS_DIR = Path("/tmp") / "uploads"
+    DATA_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_UPLOAD_SIZE = 25 * 1024 * 1024  # 25 MB
 SUPPORTED_EXTENSIONS = get_parser_registry().get_supported_extensions()
@@ -106,12 +114,21 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Narrow, secure CORS configuration (local demo environment)
+# Flexible, production-hardened CORS configuration
+allowed_origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://a3-ps019-tc303-2.onrender.com",
+]
+if os.getenv("ALLOWED_ORIGINS"):
+    allowed_origins.extend([o.strip() for o in os.getenv("ALLOWED_ORIGINS").split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

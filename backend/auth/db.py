@@ -20,12 +20,26 @@ def get_db_path() -> Path:
     env_path = os.getenv("PRIVSIGHT_AUTH_DB")
     if env_path:
         return Path(env_path)
+    if os.getenv("VERCEL"):
+        # On Vercel serverless, /var/task is read-only; use /tmp
+        tmp_db = Path("/tmp") / "users.db"
+        if not tmp_db.exists() and DEFAULT_AUTH_DB_PATH.exists():
+            import shutil
+            try:
+                shutil.copy2(DEFAULT_AUTH_DB_PATH, tmp_db)
+            except Exception:
+                pass
+        return tmp_db
     return DEFAULT_AUTH_DB_PATH
 
 
 def get_db_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     target_path = db_path or get_db_path()
-    target_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        target_path = Path("/tmp") / target_path.name
+        target_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(target_path), timeout=10.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
