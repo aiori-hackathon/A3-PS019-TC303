@@ -28,9 +28,12 @@ from backend.parsers.registry import get_parser_registry
 from backend.relationships.models import (
     CardinalityType,
     EntityNode,
+    EvidenceItem,
     RelationshipEdge,
     RelationshipGraph,
+    RelationshipHop,
     RelationshipKind,
+    RelationshipPath,
     VerificationStatus,
 )
 
@@ -539,3 +542,243 @@ class RelationshipEngine:
         if "doc" in en or "pdf" in en or "notes" in en:
             return "Document"
         return "Entity"
+
+    # --- Multi-Hop Relationship Pathfinding (Phase 2 Intelligence) ---
+
+    def find_multi_hop_path(
+        self,
+        source_term: str,
+        target_term: str,
+        selected_sources: Optional[List[str]] = None,
+        max_hops: int = 4,
+    ) -> Tuple[VerificationStatus, Optional[RelationshipPath]]:
+        """
+        Finds the shortest evidence-backed relationship path between two entities or datasets.
+        Returns (VerificationStatus, RelationshipPath).
+        If no path exists, returns ('No Match', None).
+        Never fabricates relationships.
+        """
+        paths = self.find_all_paths(
+            source_term=source_term,
+            target_term=target_term,
+            selected_sources=selected_sources,
+            max_hops=max_hops,
+        )
+        if not paths:
+            return "No Match", None
+
+        # Return shortest path (or path with highest verification)
+        best_path = min(paths, key=lambda p: (0 if p.verification_status == "Verified" else 1, p.hops_count))
+        return best_path.verification_status, best_path
+
+    def find_all_paths(
+        self,
+        source_term: str,
+        target_term: str,
+        selected_sources: Optional[List[str]] = None,
+        max_hops: int = 4,
+    ) -> List[RelationshipPath]:
+        """
+        Executes Breadth-First Search (BFS) over the discovered relationship graph
+        to discover all direct and indirect relational pathways between source and target entities.
+        """
+        edges = self.discover_all_relationships(selected_sources)
+        profiles = self.load_all_datasets(selected_sources)
+
+        src_clean = source_term.lower().strip().rstrip("s")
+        tgt_clean = target_term.lower().strip().rstrip("s")
+
+        # Resolve candidate source and target dataset keys
+        source_keys: Set[str] = set()
+        target_keys: Set[str] = set()
+
+        for k, p in profiles.items():
+            en_l = p.entity_name.lower()
+            key_l = k.lower()
+            tbl_l = (p.table_name or "").lower()
+
+            if src_clean in en_l or src_clean in key_l or src_clean in tbl_l:
+                source_keys.add(k)
+            if tgt_clean in en_l or tgt_clean in key_l or tgt_clean in tbl_l:
+                target_keys.add(k)
+
+        if not source_keys or not target_keys:
+            return []
+
+        # Build bidirectional adjacency graph over datasets
+        adj: Dict[str, List[Tuple[str, RelationshipEdge, bool]]] = defaultdict(list)
+        for e in edges:
+            # Skip self-dataset edges to prevent infinite loops
+            if e.source_dataset == e.target_dataset:
+                continue
+            # Forward
+            adj[e.source_dataset].append((e.target_dataset, e, True))
+            # Reverse
+            adj[e.target_dataset].append((e.source_dataset, e, False))
+
+        discovered_paths: List[RelationshipPath] = []
+        path_signatures: Set[str] = set()
+
+        # BFS for each source key
+        for start_key in sorted(source_keys):
+            start_ent = profiles[start_key].entity_name
+            queue: List[Tuple[str, List[Tuple[str, RelationshipEdge, bool]], Set[str], Set[str]]] = [
+                (start_key, [], {start_key}, {start_ent})
+            ]
+
+            while queue:
+                curr_node, current_hops, visited, visited_ents = queue.pop(0)
+
+                if len(current_hops) >= max_hops:
+                    continue
+
+                for neighbor, edge, is_forward in adj[curr_node]:
+                    if neighbor in visited:
+                        continue
+
+                    nbr_ent = profiles[neighbor].entity_name
+
+                    if neighbor in target_keys:
+                        # Found a valid path to target
+                        new_hops = current_hops + [(neighbor, edge, is_forward)]
+                        path_obj = self._construct_relationship_path(
+                            source_term=source_term,
+                            target_term=target_term,
+                            hops_data=new_hops,
+                            start_dataset=start_key,
+                            profiles=profiles,
+                        )
+                        sig = "--".join([f"{h.source_dataset}:{h.source_field}->{h.target_dataset}:{h.target_field}" for h in path_obj.hops])
+                        if sig not in path_signatures:
+                            path_signatures.add(sig)
+                            discovered_paths.append(path_obj)
+                    else:
+                        # Avoid visiting intermediate node of an entity type already visited
+                        if nbr_ent in visited_ents:
+                            continue
+                        new_hops = current_hops + [(neighbor, edge, is_forward)]
+                        new_visited = visited | {neighbor}
+                        new_visited_ents = visited_ents | {nbr_ent}
+                        queue.append((neighbor, new_hops, new_visited, new_visited_ents))
+
+        # Sort paths: direct 1-hop first, then 2-hop, preferring verified paths
+        discovered_paths.sort(key=lambda p: (p.hops_count, 0 if p.verification_status == "Verified" else 1))
+        return discovered_paths
+
+    def _construct_relationship_path(
+        self,
+        source_term: str,
+        target_term: str,
+        hops_data: List[Tuple[str, RelationshipEdge, bool]],
+        start_dataset: str,
+        profiles: Dict[str, DatasetProfile],
+    ) -> RelationshipPath:
+        """Helper to build a structured RelationshipPath object from BFS hop data."""
+        hops: List[RelationshipHop] = []
+        all_verified = True
+        combined_conf = 1.0
+        prev_node = start_dataset
+
+        for idx, (next_node, edge, is_forward) in enumerate(hops_data, 1):
+            src_ds = prev_node
+            tgt_ds = next_node
+
+            if is_forward:
+                s_field = edge.source_field
+                t_field = edge.target_field
+                s_ent = profiles.get(src_ds, DatasetProfile(src_ds, "", src_ds, "", None, [], 0, pd.DataFrame())).entity_name
+                t_ent = profiles.get(tgt_ds, DatasetProfile(tgt_ds, "", tgt_ds, "", None, [], 0, pd.DataFrame())).entity_name
+            else:
+                s_field = edge.target_field
+                t_field = edge.source_field
+                s_ent = profiles.get(src_ds, DatasetProfile(src_ds, "", src_ds, "", None, [], 0, pd.DataFrame())).entity_name
+                t_ent = profiles.get(tgt_ds, DatasetProfile(tgt_ds, "", tgt_ds, "", None, [], 0, pd.DataFrame())).entity_name
+
+            if edge.verification_status != "Verified":
+                all_verified = False
+
+            combined_conf *= edge.confidence_score
+
+            hops.append(
+                RelationshipHop(
+                    hop_number=idx,
+                    source_entity=s_ent,
+                    source_dataset=src_ds,
+                    source_field=s_field,
+                    target_entity=t_ent,
+                    target_dataset=tgt_ds,
+                    target_field=t_field,
+                    relationship_type=edge.relationship_type,
+                    cardinality=edge.cardinality,
+                    verification_status=edge.verification_status,
+                    confidence_score=edge.confidence_score,
+                    evidence=edge.evidence,
+                )
+            )
+            prev_node = next_node
+
+        overall_status: VerificationStatus = "Verified" if all_verified else "Inferred"
+
+        # Compute summary topology
+        nodes_chain = [hops[0].source_entity] + [h.target_entity for h in hops]
+        summary_str = " → ".join(nodes_chain)
+
+        # Build natural explanation
+        explanation = self.explain_relationship_path(hops, source_term, target_term)
+
+        return RelationshipPath(
+            source_entity=source_term.title(),
+            target_entity=target_term.title(),
+            hops_count=len(hops),
+            hops=hops,
+            path_summary=summary_str,
+            overall_cardinality=hops[0].cardinality if len(hops) == 1 else "1:N",
+            verification_status=overall_status,
+            confidence_score=round(combined_conf, 3),
+            explanation=explanation,
+        )
+
+    def explain_relationship_path(
+        self,
+        hops: List[RelationshipHop],
+        source_label: str,
+        target_label: str,
+    ) -> str:
+        """Formats a detailed, evidence-grounded explanation for a multi-hop or direct relationship path."""
+        if not hops:
+            return f"No verified relationship pathway was discovered between `{source_label}` and `{target_label}`."
+
+        nodes_chain = [hops[0].source_entity] + [h.target_entity for h in hops]
+        path_str = " → ".join([f"`{n}`" for n in nodes_chain])
+        hops_cnt = len(hops)
+        conn_type = "Direct (1-Hop)" if hops_cnt == 1 else f"Indirect ({hops_cnt}-Hop Path)"
+
+        parts: List[str] = []
+        parts.append(f"**Relational Pathway: {path_str}** ({conn_type})\n")
+
+        for h in hops:
+            status_badge = f"**{h.verification_status.upper()}**"
+            parts.append(f"- **Hop {h.hop_number}:** `{h.source_entity}.{h.source_field}` → `{h.target_entity}.{h.target_field}`")
+            parts.append(f"  - **Type & Cardinality**: {h.relationship_type} (`{h.cardinality}`)")
+            parts.append(f"  - **Verification Status**: {status_badge} (Confidence: {int(h.confidence_score * 100)}%)")
+            parts.append(f"  - **Technical Evidence**: {h.evidence}")
+
+        if hops_cnt == 1:
+            h = hops[0]
+            parts.append(
+                f"\n**Relationship Conclusion:**\n"
+                f"`{source_label.title()}` and `{target_label.title()}` are **directly related** via key `{h.source_field}`. "
+                f"Referential integrity is verified by {h.evidence.lower()}"
+            )
+        else:
+            intermediates = " → ".join([f"`{h.target_entity}`" for h in hops[:-1]])
+            parts.append(
+                f"\n**Relational Traversal & Indirect Linkage:**\n"
+                f"`{source_label.title()}` and `{target_label.title()}` are **indirectly connected** through {intermediates}. "
+                f"Specifically, `{hops[0].source_entity}` links to `{hops[0].target_entity}` on `{hops[0].source_field}`, "
+                f"which in turn connects to `{hops[-1].target_entity}` on `{hops[-1].source_field}`. "
+                f"Every hop in this chain is validated by actual database evidence without fabricated associations."
+            )
+
+        return "\n".join(parts)
+

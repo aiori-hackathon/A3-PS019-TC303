@@ -256,9 +256,21 @@ const AssistantMessage = {
 
     const badges = document.createElement('div');
     badges.className = 'tracera-response-badges';
+    
+    let pathBadges = '';
+    if (metadata.relationship_paths && metadata.relationship_paths.length > 0) {
+      const p = metadata.relationship_paths[0];
+      const isVer = p.verification_status === 'Verified';
+      const badgeStyle = isVer 
+        ? 'background:rgba(16, 185, 129, 0.15); color:#10B981; border:1px solid rgba(16, 185, 129, 0.3); font-size:0.68rem; font-weight:700;'
+        : 'background:rgba(212, 167, 44, 0.15); color:var(--accent-gold); border:1px solid rgba(212, 167, 44, 0.3); font-size:0.68rem; font-weight:700;';
+      pathBadges += `<span class="badge" style="${badgeStyle}">Path: ${escapeHtml(p.path_summary)} · ${escapeHtml(p.verification_status.toUpperCase())}</span>`;
+    }
+
     badges.innerHTML = `
       <span class="badge badge-status-complete" style="font-size:0.68rem; font-weight:700;">✔ Verified Schema Engine</span>
       <span class="badge" style="background:rgba(212,167,44,0.12); color:var(--accent-gold); font-size:0.68rem;">🔒 PII Masked</span>
+      ${pathBadges}
     `;
 
     const actions = document.createElement('div');

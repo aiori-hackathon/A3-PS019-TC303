@@ -132,6 +132,7 @@ def delete_conversation(
     ok = chat_service.delete_conversation(conv_id, user.id)
     if not ok:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    ai_assistant.context_reasoner.clear_context(conv_id)
     return {"status": "success", "message": "Conversation deleted successfully"}
 
 
@@ -181,6 +182,7 @@ def chat_with_assistant(
         conversation_history=history,
         selected_sources=payload.selected_sources,
         explicit_format=payload.format_preference,
+        conversation_id=conv_id,
     )
 
     # Save assistant response

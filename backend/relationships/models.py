@@ -11,7 +11,15 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
-VerificationStatus = Literal["Verified", "Possible", "Needs Review", "Rejected"]
+VerificationStatus = Literal[
+    "Verified",
+    "Inferred",
+    "Unverified",
+    "No Match",
+    "Possible",
+    "Needs Review",
+    "Rejected",
+]
 CardinalityType = Literal["1:1", "1:N", "N:M", "Unknown"]
 RelationshipKind = Literal[
     "person_to_person",
@@ -37,6 +45,48 @@ ExplanationFormat = Literal[
     "step_by_step",
     "structured_report"
 ]
+
+
+class RelationshipHop(BaseModel):
+    """Represents one step in a multi-hop relationship path."""
+    hop_number: int = 1
+    source_entity: str
+    source_dataset: str
+    source_field: str
+    target_entity: str
+    target_dataset: str
+    target_field: str
+    relationship_type: str
+    cardinality: CardinalityType = "1:N"
+    verification_status: VerificationStatus = "Verified"
+    confidence_score: float = 1.0
+    evidence: str
+
+
+class RelationshipPath(BaseModel):
+    """Represents a direct or multi-hop path connecting two entities across datasets."""
+    source_entity: str
+    target_entity: str
+    hops_count: int
+    hops: List[RelationshipHop] = Field(default_factory=list)
+    path_summary: str
+    overall_cardinality: CardinalityType = "1:N"
+    verification_status: VerificationStatus = "Verified"
+    confidence_score: float = 1.0
+    explanation: str
+
+
+class EvidenceItem(BaseModel):
+    """Structured evidence record backing an AI assistant statement or relationship."""
+    source_table: str
+    source_column: str
+    target_table: Optional[str] = None
+    target_column: Optional[str] = None
+    relationship_type: str
+    evidence_reference: str
+    verification_status: VerificationStatus = "Verified"
+    confidence_score: float = 1.0
+    notes: Optional[str] = None
 
 
 class EntityNode(BaseModel):
@@ -103,6 +153,10 @@ class RelationshipReport(BaseModel):
     evidence_sources: List[str] = Field(default_factory=list)
     conversation_id: Optional[str] = None
     message_id: Optional[str] = None
+    relationship_paths: Optional[List[RelationshipPath]] = None
+    evidence_items: Optional[List[EvidenceItem]] = None
+    identified_entities: Optional[List[Dict[str, Any]]] = None
+    context_state: Optional[Dict[str, Any]] = None
 
 
 # --- Chat & Conversation Persistence Models ---
