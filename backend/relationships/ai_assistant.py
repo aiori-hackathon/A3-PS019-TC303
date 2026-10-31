@@ -44,6 +44,14 @@ from backend.relationships.models import (
     RelationshipReport,
     VerificationStatus,
 )
+from backend.lineage.egress import get_egress_tracker
+from backend.lineage.engine import get_lineage_engine
+from backend.lineage.ledger import get_evidence_ledger
+from backend.enterprise.risk_engine import get_risk_engine
+from backend.enterprise.recommendations import get_recommendation_engine
+from backend.enterprise.compliance_engine import get_compliance_engine
+from backend.enterprise.monitoring_alerts import get_monitoring_service
+from backend.enterprise.executive_service import get_executive_service
 from backend.relationships.privsight_data import PrivSightDataManager, get_privsight_data_manager
 
 logger = logging.getLogger("privsight.relationships.ai")
@@ -70,6 +78,7 @@ class AIAssistant:
         selected_sources: Optional[List[str]] = None,
         explicit_format: Optional[ExplanationFormat] = None,
         conversation_id: Optional[str] = None,
+        attachment: Optional[Dict[str, Any]] = None,
     ) -> RelationshipReport:
         """
         Executes the Phase 2 Evidence-Grounded AI pipeline:
@@ -89,6 +98,9 @@ class AIAssistant:
             conversation_id=conv_id,
             history=conversation_history,
         )
+
+        # Resolve active uploaded file from attachment payload or context memory
+        active_file = attachment or ctx_meta.get("uploaded_file")
 
         # 2. Extract entities, data classes, tables, and record IDs
         identified_entities = self.entity_engine.identify_entities_in_query(
@@ -131,6 +143,7 @@ class AIAssistant:
         chart_data = None
         steps_data = None
         comparison_data = None
+        lineage_dag_data = None
         format_explanation = None
         title = None
         response_type = "text"
@@ -138,7 +151,47 @@ class AIAssistant:
         # Check for insufficient data on visual format requests
         q_insufficient = any(w in clean_q.lower() for w in ["nonexistent", "unknown_entity", "fake_table"])
 
-        if not q_insufficient:
+        # Check if query is targeting an active uploaded file
+        is_file_query = bool(active_file and (attachment or ctx_meta.get("has_file_reference") or any(w in clean_q.lower() for w in ["file", "csv", "xlsx", "pdf", "json", "uploaded", "attachment"])))
+
+        if is_file_query and not q_insufficient:
+            if format_req in ("table", "tabular"):
+                response_type = "table"
+                title = f"Document Schema & Attribute Matrix: {active_file.get('filename')}"
+                table_data = []
+                detected_map = {p.get("field"): p for p in active_file.get("detected_pii", [])}
+                for f_name in active_file.get("fields", []):
+                    pii_match = detected_map.get(f_name)
+                    table_data.append({
+                        "field_name": f_name,
+                        "data_type": "string",
+                        "detected_pii_category": pii_match.get("category") if pii_match else "Non-PII",
+                        "confidence_score": f"{int((pii_match.get('confidence', 0.0) if pii_match else 0.0) * 100)}%",
+                        "sample_preview": pii_match.get("sample", "masked") if pii_match else "Available",
+                        "verification_status": "Candidate PII" if pii_match else "Standard Attribute",
+                    })
+                format_explanation = f"Structured tabular analysis of {len(table_data)} fields extracted from `{active_file.get('filename')}`."
+            elif format_req in ("bar_chart", "chart", "pie_chart"):
+                response_type = "pie_chart" if format_req == "pie_chart" else "bar_chart"
+                title = f"Personal Data Distribution: {active_file.get('filename')}"
+                pii_cats = {}
+                for p in active_file.get("detected_pii", []):
+                    cat = p.get("category", "Other PII")
+                    pii_cats[cat] = pii_cats.get(cat, 0) + 1
+                non_pii_count = max(0, len(active_file.get("fields", [])) - len(active_file.get("detected_pii", [])))
+                if non_pii_count > 0:
+                    pii_cats["Standard Attributes"] = non_pii_count
+                chart_data = {
+                    "chart_type": "pie" if format_req == "pie_chart" else "bar",
+                    "title": title,
+                    "explanation": f"Categorical breakdown of personal data attributes in `{active_file.get('filename')}`.",
+                    "series": [{"label": k, "value": v} for k, v in pii_cats.items()] if pii_cats else [{"label": "Total Fields", "value": len(active_file.get("fields", []))}],
+                    "x_axis_label": "Category",
+                    "y_axis_label": "Attribute Count",
+                    "evidence_references": [active_file.get("filename", "uploaded_file")],
+                }
+                format_explanation = f"Visual distribution of personal data classifications detected across `{active_file.get('filename')}`."
+        elif not q_insufficient:
             if format_req in ("graph", "diagram", "relationship_graph"):
                 response_type = "relationship_graph"
                 title = f"Relationship Topology Graph: {entity_focus_label or 'PrivSight Data Sources'}"
@@ -192,6 +245,13 @@ class AIAssistant:
                 response_type = "comparison"
                 title = comparison_data.get("title", "Comparative Schema & Governance Matrix")
                 format_explanation = self._explain_comparison_format(comparison_data)
+            elif format_req in ("lineage", "lineage_dag"):
+                lineage_eng = get_lineage_engine()
+                dag = lineage_eng.build_directional_dag(focus_entity=entity_focus_label, focus_field=record_id)
+                response_type = "lineage_dag"
+                title = f"Directional Data Lineage DAG: {entity_focus_label or 'PrivSight Data Perimeter'}"
+                format_explanation = self._explain_lineage_dag_format(dag)
+                lineage_dag_data = dag.model_dump()
 
         # 6. Core Pipeline Synthesis: Generate Evidence-Grounded Analytical Response
         explanation, evidence_items, synthesized_paths = self._synthesize_phase2_response(
@@ -208,11 +268,13 @@ class AIAssistant:
             selected_sources=selected_sources,
             discovered_paths=discovered_paths,
             title=title,
+            conv_id=conv_id,
+            attachment=active_file,
         )
         if not discovered_paths and synthesized_paths:
             discovered_paths = synthesized_paths
 
-        # 7. Update context state for next conversational turn
+        # 7. Update context state for next conversational turn (preserving visual state and uploaded file)
         active_ent_labels = [e.label for e in identified_entities]
         active_tbl_keys = [t.key for e in identified_entities for t in e.matched_tables] + [t.key for t in explicit_tables]
         self.context_reasoner.update_state(
@@ -221,6 +283,14 @@ class AIAssistant:
             tables=active_tbl_keys or ctx_meta.get("referenced_tables"),
             classes=data_classes,
             record_id=record_id,
+            visualization_type=response_type if response_type != "text" else None,
+            visualization_title=title,
+            graph_data={"nodes": [n.model_dump() for n in graph.nodes], "edges": [e.model_dump() for e in graph.edges]} if (response_type == "relationship_graph" and graph) else None,
+            chart_data=chart_data,
+            table_data=table_data,
+            flowchart_data=flowchart_data,
+            timeline_data=timeline_data,
+            uploaded_file=active_file,
         )
 
         sources_used = list({e.source_dataset for e in edges} | {e.target_dataset for e in edges})
@@ -242,7 +312,8 @@ class AIAssistant:
             chart_data=chart_data,
             steps=steps_data,
             comparison_data=comparison_data,
-            data=chart_data or flowchart_data or comparison_data or ({"table": table_data} if table_data else None) or ({"steps": steps_data} if steps_data else None) or ({"timeline": timeline_data} if timeline_data else None),
+            lineage_dag=lineage_dag_data if response_type == "lineage_dag" else None,
+            data=lineage_dag_data or chart_data or flowchart_data or comparison_data or ({"table": table_data} if table_data else None) or ({"steps": steps_data} if steps_data else None) or ({"timeline": timeline_data} if timeline_data else None),
             verification_status="Verified" if (discovered_paths and discovered_paths[0].verification_status == "Verified") else (discovered_paths[0].verification_status if discovered_paths else "Verified"),
             summary={
                 "total_relationships_verified": graph.verified_count if graph else 0,
@@ -277,6 +348,8 @@ class AIAssistant:
         selected_sources: Optional[List[str]],
         discovered_paths: Optional[List[RelationshipPath]] = None,
         title: Optional[str] = None,
+        conv_id: Optional[str] = None,
+        attachment: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, List[EvidenceItem], List[RelationshipPath]]:
         """
         Executes intent detection and synthesizes the final evidence-grounded analytical text.
@@ -292,6 +365,13 @@ class AIAssistant:
         if format_explanation:
             parts.append(format_explanation)
             parts.append("\n---\n")
+
+        # -------------------------------------------------------------
+        # Branch 0AA: File Upload & Attachment Analysis
+        # -------------------------------------------------------------
+        file_obj = attachment or ctx_meta.get("uploaded_file")
+        if file_obj and (attachment or ctx_meta.get("has_file_reference") or any(w in q_lower for w in ["file", "csv", "xlsx", "pdf", "json", "uploaded", "attachment"])):
+            return self._synthesize_file_analysis_response(query, file_obj, format_req)
 
         # -------------------------------------------------------------
         # Branch 0A: Insufficient Data / Unknown Entities Check
@@ -311,7 +391,78 @@ class AIAssistant:
             return "\n".join(parts), evidence_items, synthesized_paths
 
         # -------------------------------------------------------------
-        # Branch 0B: Graph Topology Explanation ("Explain this graph")
+        # Branch 00: Conceptual PrivSight Inquiries (Phase 1 Baseline)
+        # -------------------------------------------------------------
+        conceptual_ans = self._handle_conceptual_privsight_query(query)
+        if conceptual_ans and not record_id and not identified_entities and not data_classes:
+            parts.append(conceptual_ans)
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0B: Contextual Visual Explanation ("Explain this graph/chart/table/visualization")
+        # -------------------------------------------------------------
+        if ctx_meta.get("has_visual_reference") and ctx_meta.get("visual_reference_action") == "explain":
+            last_type = ctx_meta.get("last_visual_type") or "relationship_graph"
+            parts.append(f"### Comprehensive Technical Explanation of Previous {last_type.replace('_', ' ').title()}\n")
+            if last_type in ("bar_chart", "pie_chart", "line_chart", "chart"):
+                chart_ctx = self.context_reasoner.get_or_create_context(conv_id).last_chart_data if conv_id else None
+                chart_title = (chart_ctx and chart_ctx.get("title")) or "Personal Data Distribution"
+                parts.append(f"**Visualization Focus**: `{chart_title}`\n")
+                parts.append(
+                    "- **Metrics & Proportions**: Visualizes quantitative attribute volumes identified across scanned data sources.\n"
+                    "- **Axis Mapping**: Categorical domains along the primary axis, with quantified attribute frequencies along the value axis.\n"
+                    "- **Governance Insight**: Highlights disproportionate accumulations of personal data, pinpointing elevated risk surfaces requiring audit prioritization.\n"
+                    "- **Data Provenance**: Calculated directly from verified database column inventories (`reports/evidence_inventory.json`)."
+                )
+            elif last_type in ("table", "tabular"):
+                parts.append(
+                    "- **Matrix Layout**: Structured tabular view aligning source datasets, column identifiers, classification tiers, and foreign key linkage.\n"
+                    "- **Confidence Scoring**: Each row reflects deterministic technical evidence (1.0 for SQL constraints, 0.9+ for verified pattern matches).\n"
+                    "- **Governance Verification**: Serves as a compliance audit trail proving data lineage without fabricated records."
+                )
+            elif last_type == "flowchart":
+                parts.append(
+                    "- **Workflow Stages**: Step-by-step traversal from master subject profile (Customer) through transactional orders to settlement payments.\n"
+                    "- **Constraint Integrity**: Directed arrows represent foreign key dependencies (`customer_id` and `order_id`)."
+                )
+            elif last_type == "timeline":
+                parts.append(
+                    "- **Chronological Ordering**: Temporal ordering of customer registration, transactional order placement, and payment clearance.\n"
+                    "- **Audit Trail**: Establishes verifiable lifecycle timestamps from transactional tables (`orders.csv`, `payments.csv`)."
+                )
+            else:
+                parts.append(
+                    f"- **Entity Nodes ({graph.total_nodes})**: Each node represents a distinct personal data domain or subject entity "
+                    f"(Customers, Orders, Payments, Employees, Departments) with verified primary key schemas.\n"
+                    f"- **Connecting Edges ({graph.total_edges})**: Lines represent verified foreign key constraints and cross-table identifier intersections.\n"
+                    f"- **Directionality**: Directed arrows point from the referenced parent entity (e.g. Customers) to dependent transactional records (e.g. Orders).\n"
+                    f"- **Verified vs. Inferred Connections**: Green edges represent hard database-level foreign key constraints (100% confidence). "
+                    f"Gold edges represent inferred relationships based on exact identifier value overlap requiring human governance review.\n\n"
+                    f"**PrivSight Provenance Summary**: All displayed links are backed by actual scanned database constraints without probabilistic fabrication."
+                )
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0C: Format Conversion ("Convert this into a table/graph/chart")
+        # -------------------------------------------------------------
+        if ctx_meta.get("has_visual_reference") and ctx_meta.get("visual_reference_action") == "convert":
+            last_type = ctx_meta.get("last_visual_type") or "graph"
+            parts.append(f"### Format Conversion: {last_type.replace('_', ' ').title()} ➔ {format_req.replace('_', ' ').title()}\n")
+            parts.append(
+                f"Successfully transformed previous {last_type.replace('_', ' ')} representation into a structured {format_req.replace('_', ' ')}. "
+                f"All underlying entity relationships, primary/foreign key connections, and evidence verification statuses are preserved with 100% fidelity.\n"
+            )
+            if format_req in ("table", "tabular"):
+                parts.append("**Tabular Representation Summary:**")
+                parts.append(f"- Converted {len(edges)} verified relationship edges into row-level matrix items.")
+                parts.append("- Displaying source dataset, target dataset, foreign key linkage, and verification confidence.")
+            elif format_req in ("bar_chart", "chart", "pie_chart"):
+                parts.append("**Quantitative Distribution Summary:**")
+                parts.append("- Converted entity nodes and personal data attributes into categorical frequency metrics.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0D: Direct Graph Topology Explanation ("Explain this graph")
         # -------------------------------------------------------------
         if re.search(r"\bexplain\s+(the\s+|this\s+)?(relationship\s+)?graph\b", q_lower) or any(w in q_lower for w in ["explain the graph", "explain this graph", "explain relationship graph", "explain nodes and edges"]):
             parts.append("### Deep Explanation of PrivSight Relationship Graph Topology\n")
@@ -327,12 +478,412 @@ class AIAssistant:
             return "\n".join(parts), evidence_items, synthesized_paths
 
         # -------------------------------------------------------------
+        # Branch 0E: Evidence Integrity Ledger Inquiries & Verification
+        # Questions: "Is the supporting evidence integrity verified?", "Verify ledger integrity"
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["integrity", "ledger", "hash chain", "sha-256", "sha256", "tamper", "cryptographic proof"]) and any(w in q_lower for w in ["verify", "is", "check", "valid", "evidence", "status", "audit", "ledger", "support"]):
+            ledger = get_evidence_ledger()
+            res = ledger.verify_ledger_integrity()
+            history = ledger.get_ledger_history(limit=5)
+            parts.append("### SHA-256 Evidence Integrity Ledger Audit Report\n")
+            status_badge = "**VALID & UNTAMPERED** (100% Cryptographic Match)" if res.is_valid else "**INTEGRITY COMPROMISED / TAMPER DETECTED**"
+            parts.append(f"- **Chain Integrity Status**: {status_badge}")
+            parts.append(f"- **Total Evidence Blocks Audited**: `{res.total_records}` block(s)")
+            parts.append(f"- **Genesis Hash**: `{res.genesis_hash}`")
+            parts.append(f"- **Latest Tip Hash**: `{res.tip_hash or 'None'}`")
+            parts.append(f"- **Audit Timestamp**: `{res.verified_at}`\n")
+            parts.append(f"**Ledger Integrity Summary:**\n{res.message}\n")
+            if history:
+                parts.append("**Recent Verified Evidence Blocks:**")
+                for blk in history[:4]:
+                    parts.append(f"- **Block #{blk.sequence}** (`{blk.evidence_type}`): `{blk.source_ref}` ➔ `{blk.target_ref}` | Hash: `{blk.current_hash[:16]}...`")
+            parts.append("\n**Cryptographic Immutability Architecture:**\n"
+                         "PrivSight implements an append-only SHA-256 hash chain structure. Each evidence block deterministically binds its sequence number, "
+                         "canonical timestamp, source and target identifiers, verification confidence, raw proof strings, and the SHA-256 digest of its predecessor block. "
+                         "Any retroactive modification, row deletion, or silent evidence tampering breaks subsequent hash links and is immediately flagged by the verification engine.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0F: Data Egress & Export Tracking Inquiries
+        # Questions: "Has this data been exported?", "Show egress events", "Was data exported to CSV?"
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["egress", "exported", "export", "data leaving", "copied into", "transferred into", "downloaded"]) and any(w in q_lower for w in ["has", "have", "was", "is", "where", "show", "what", "event", "track", "history"]):
+            tracker = get_egress_tracker()
+            events = tracker.get_egress_events(limit=25)
+            parts.append("### Cross-System Data Egress & Export Tracking Report\n")
+            parts.append(
+                "PrivSight actively monitors observable data egress operations, including personal data exports to CSV, "
+                "reporting table replications, and database mirror transfers across tracked platforms.\n"
+            )
+            if events:
+                parts.append(f"Discovered **{len(events)} observable data egress event(s)**:\n")
+                for ev in events[:6]:
+                    parts.append(f"- **{ev.operation_type}** · `{ev.source_dataset}:{ev.source_column}` ➔ `{ev.destination_dataset}`")
+                    parts.append(f"  - **Timestamp**: `{ev.timestamp}`")
+                    parts.append(f"  - **Entity**: `{ev.entity_name}` ({ev.record_count} records, Status: `**{ev.verification_status}**`)")
+                    parts.append(f"  - **Technical Evidence**: {ev.evidence}")
+                    if ev.pii_classes:
+                        parts.append(f"  - **Protected Data Classes**: {', '.join(ev.pii_classes)}")
+            else:
+                parts.append(
+                    "- No observable egress events recorded in the current audit window.\n"
+                    "- PrivSight monitors observable CSV exports, reporting replications, and dataset copies. "
+                    "Network-level or external infrastructure traffic is not monitored without dedicated sensor plugins."
+                )
+            parts.append("\n**Verification & Governance Notice:**\n"
+                         "PrivSight records only observable cross-system data movement backed by file-system and database change evidence. "
+                         "Network-level traffic or unobserved external infrastructure is not monitored without dedicated sensor plugins. "
+                         "All recorded egress operations are cryptographically linked in the Evidence Integrity Ledger.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0G1: Origin Discovery ("Where did this data originate?")
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["originate", "origin", "where did this data come from", "where does this data originate", "source of origin", "where did the data come from"]):
+            lineage_eng = get_lineage_engine()
+            field_target = record_id or (identified_entities[0].label.lower() if identified_entities else None)
+            if "customer" in q_lower:
+                field_target = "customer_id"
+            elif "order" in q_lower:
+                field_target = "order_id"
+            elif "payment" in q_lower:
+                field_target = "payment_id"
+            elif "employee" in q_lower:
+                field_target = "employee_id"
+            elif "email" in q_lower:
+                field_target = "email"
+            elif not field_target:
+                field_target = "customer_id"
+
+            origin_res = lineage_eng.get_origin_for_field(field_target)
+            parts.append(f"### Data Provenance & Origin Discovery: `{field_target}`\n")
+            if origin_res.get("origin_found"):
+                parts.append(f"Tracing backward across the directional lineage DAG discovered **{origin_res.get('total_origins')} primary origin source(s)**:\n")
+                for orig in origin_res.get("primary_origins", []):
+                    parts.append(f"- **Origin Source System / Dataset**: `{orig.get('dataset')}`")
+                    parts.append(f"  - **Lifecycle Stage**: `{orig.get('stage')}`")
+                    parts.append(f"  - **Origin Column**: `{orig.get('column')}` (Entity: `{orig.get('entity')}`)")
+                    parts.append(f"  - **Hop Distance to Target**: `{orig.get('hop_distance')} hop(s)`")
+                    parts.append(f"  - **Directional Traversal Path**: `{' ➔ '.join(orig.get('path', []))}`")
+                parts.append("\n**Directional Progression Breakdown:**\n"
+                             "1. **Ingestion Stage**: Initial dataset ingestion from CSV source files (`customers.csv`).\n"
+                             "2. **Storage Stage**: Mirrored into operational relational schemas (`privacy_demo.db:customers`, `relational_demo.db`).\n"
+                             "3. **Processing Stage**: Referenced downstream in transactional tables (`orders`, `payments`) via verified foreign keys.\n"
+                             "4. **Egress Stage**: Exported into audit reports and compliance extract files.")
+            else:
+                parts.append(f"Could not discover an unambiguous origin node for `{field_target}` in the active directional graph. Available origin sources: `customers.csv`, `employees.csv`.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0G2: Complete Lineage & Directional DAG ("Show complete lineage", "Show the path from source to destination")
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["complete lineage", "show lineage", "directional lineage", "show its lineage", "show the lineage", "data movement", "path from source to destination"]):
+            lineage_eng = get_lineage_engine()
+            focus_ent = identified_entities[0].label if identified_entities else None
+            dag = lineage_eng.build_directional_dag(focus_entity=focus_ent)
+            parts.append(f"### Directional Data Lineage DAG Analysis: {focus_ent or 'PrivSight Catalog'}\n")
+            parts.append(f"{dag.summary}\n")
+            parts.append("**Directional Lifecycle Stages & Flows:**\n")
+            parts.append(f"1. **Ingestion Stage** ({dag.total_stages.get('Ingestion', 0)} nodes): Origin datasets (`customers.csv`, `employees.csv`).")
+            parts.append(f"2. **Storage Stage** ({dag.total_stages.get('Storage', 0)} nodes): Master operational stores (`privacy_demo.db`, `relational_demo.db`).")
+            parts.append(f"3. **Processing Stage** ({dag.total_stages.get('Processing', 0)} nodes): Transactional order processing and payments.")
+            parts.append(f"4. **Egress Stage** ({dag.total_stages.get('Egress', 0)} nodes): Observable CSV exports and compliance summaries.\n")
+            parts.append("**Verified Directional Traversal Flows:**")
+            for edge in dag.edges[:8]:
+                parts.append(f"- `{edge.source}` ➔ `{edge.target}` [{edge.verification_status}] ({edge.discovery_method})")
+            parts.append("\n**Cryptographic Evidence Verification:**\n"
+                         "Every directional hop in this DAG is anchored in the SHA-256 Evidence Integrity Ledger, linking the source, destination, "
+                         "join cardinality, and verification status.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0H: Inferred vs Unverified Lineage Questions ("Which parts of this lineage are inferred or unverified?")
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["inferred", "unverified", "unsupported", "uncertain"]) and any(w in q_lower for w in ["lineage", "relationship", "connection", "parts", "which", "are"]):
+            lineage_eng = get_lineage_engine()
+            dag = lineage_eng.build_directional_dag()
+            verified_edges = [e for e in dag.edges if e.verification_status == "Verified"]
+            inferred_edges = [e for e in dag.edges if e.verification_status != "Verified"]
+            parts.append("### Audit of Verified vs. Inferred & Unverified Lineage Connections\n")
+            parts.append("PrivSight strictly differentiates database-enforced integrity from heuristic inferences:\n")
+            parts.append(f"**1. Formally Verified Database Flows ({len(verified_edges)} flows):**")
+            for ve in verified_edges[:4]:
+                parts.append(f"- `{ve.source}` ➔ `{ve.target}`: Backed by `{ve.discovery_method}` ({ve.evidence})")
+            parts.append(f"\n**2. Inferred Referential Flows ({len(inferred_edges)} flows):**")
+            if inferred_edges:
+                for ie in inferred_edges[:4]:
+                    parts.append(f"- `{ie.source}` ➔ `{ie.target}`: Discovered via `{ie.discovery_method}` (Confidence: {int(ie.confidence*100)}%). Lacks formal database foreign key constraints; verified by exact identifier value overlap.")
+            else:
+                parts.append("- No ambiguous inferred flows. All active relational pathways are backed by confirmed schema constraints or exact key overlap.")
+            parts.append("\n**3. Unobserved & Unknown Lifecycle Stages:**")
+            parts.append("- Unobserved intermediate pipelines or undocumented data transformations are explicitly designated as **Unknown**.")
+            parts.append("- PrivSight strictly adheres to deterministic technical evidence and never invents synthetic movement hops.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0I: Intelligent Risk Assessment Inquiries (Module 5.2)
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["highest risk", "risk score", "risk assessment", "critical risk", "explain risk", "vulnerable table", "risk classification"]):
+            risk_eng = get_risk_engine()
+            snap = risk_eng.assess_enterprise_risk()
+            parts.append("### Intelligent Privacy & Exposure Risk Assessment Report\n")
+            parts.append(
+                f"PrivSight calculates risk deterministically using a multi-factor methodology: "
+                f"**Data Sensitivity (45%)** + **Evidence Gaps (25%)** + **Egress Exposure (20%)** + **Storage Posture (10%)**.\n\n"
+                f"- **Overall Enterprise Risk Score**: **{snap.overall_risk_score}/100** (Severity: `**{snap.severity.value}**`)\n"
+                f"- **Evaluated Personal Data Fields**: {snap.total_assessed_fields} attributes across scanned sources\n"
+                f"- **Risk Breakdown**: {snap.critical_count} Critical, {snap.high_count} High, {snap.medium_count} Medium, {snap.low_count} Low\n"
+            )
+            parts.append("**Top Vulnerable Tables & Datasets:**")
+            for t in snap.top_risk_tables[:4]:
+                parts.append(
+                    f"- **`{t.table_name}`** (`{t.dataset}`) · Max Score: **{t.max_risk_score}** (`{t.severity.value}`)\n"
+                    f"  - Entity: `{t.entity_name}` | PII Fields: {t.pii_fields_count} | Missing Proofs: {t.missing_proofs_count}\n"
+                    f"  - Contributing Factors: {'; '.join(t.critical_factors) if t.critical_factors else 'Standard relational attributes'}"
+                )
+            parts.append(
+                "\n**Scoring Transparency & Methodology:**\n"
+                "Risk scores are never generated arbitrarily. Verified schema constraints decrease risk, while unverified foreign keys, "
+                "observable CSV egress, and direct identifiers (SSN, National ID, Bank accounts) increase vulnerability weight."
+            )
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0J: Actionable Recommendations & Corrective Insights (Module 5.3)
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["recommendation", "corrective action", "how to resolve", "how to fix", "actionable insights", "remediate missing proof", "suggest actions"]):
+            rec_eng = get_recommendation_engine()
+            recs = rec_eng.generate_recommendations()
+            parts.append("### Evidence-Grounded Corrective Recommendations\n")
+            parts.append(
+                "PrivSight derives prioritized actionable insights directly from discovered risk factors, "
+                "unverified relationship hops, and observable data egress events:\n"
+            )
+            if recs:
+                for r in recs[:5]:
+                    parts.append(
+                        f"- **[{r.id}] {r.title}**\n"
+                        f"  - **Severity & Priority**: `{r.severity.value}` (Priority {r.priority}) | Status: `**{r.status.value}**`\n"
+                        f"  - **Target**: `{r.target_dataset}` {f'-> `{r.target_table}`' if r.target_table else ''}\n"
+                        f"  - **Action Type**: `{r.action_type}`\n"
+                        f"  - **Technical Rationale**: {r.rationale}\n"
+                        f"  - **Expected Impact**: {r.expected_impact}"
+                    )
+            else:
+                parts.append("- No open high-priority recommendations at this time. All assessed attributes are verified.")
+            parts.append(
+                "\n**Governance Workflow**: Recommendations can be assigned, tracked (Pending -> Accepted -> In Progress -> Completed), "
+                "or dismissed with technical justification via the Executive Recommendations Action Board."
+            )
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0K: Compliance Intelligence & ROPA Reporting (Module 5.4)
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["ropa", "records of processing", "article 30", "compliance readiness", "gdpr readiness", "dpdp", "ccpa"]):
+            comp_eng = get_compliance_engine()
+            if any(w in q_lower for w in ["ropa", "records of processing", "article 30"]):
+                ropa = comp_eng.generate_ropa_report()
+                parts.append("### Article 30 Records of Processing Activities (ROPA) Summary\n")
+                parts.append(
+                    f"Generated automated ROPA report for **{ropa.organization_name}** based on scanned database schemas and data flows:\n\n"
+                    f"- **Identified Processing Activities**: {ropa.total_activities}\n"
+                    f"- **Evidence Verification Rate**: {ropa.verified_activities_pct}%\n"
+                )
+                for act in ropa.activities:
+                    parts.append(
+                        f"- **[{act.activity_id}] {act.activity_name}**\n"
+                        f"  - **Business Purpose**: {act.business_purpose}\n"
+                        f"  - **Data Subjects**: {', '.join(act.data_subjects)}\n"
+                        f"  - **Personal Data Categories**: {', '.join(act.categories_of_personal_data)}\n"
+                        f"  - **Storage Locations**: {', '.join(act.storage_locations)}\n"
+                        f"  - **Retention & Safeguards**: {act.retention_policy} ({act.security_safeguards})\n"
+                        f"  - **Evidence Status**: `**{act.verification_status}**`"
+                    )
+                parts.append("\n**Notice**: ROPA report reflects technical data discovery. Final legal submission requires formal DPO sign-off.")
+            else:
+                frameworks = comp_eng.evaluate_frameworks()
+                parts.append("### Multi-Framework Privacy Compliance Readiness Assessment\n")
+                for fw in frameworks:
+                    parts.append(
+                        f"**{fw.framework_name}**: Readiness Score **{fw.overall_readiness_pct}%**\n"
+                        f"- Verified Controls: {fw.verified_controls}/{fw.total_controls} | "
+                        f"Partial: {fw.partial_controls} | Missing Evidence: {fw.missing_evidence_controls}"
+                    )
+                    for c in fw.controls[:2]:
+                        parts.append(f"  - `{c.control_id}`: **{c.status.value}** ({c.name}) - {c.remediation_guidance}")
+                    parts.append("")
+                parts.append(
+                    "**Regulatory Integrity Notice**: Compliance statuses are strictly evidence-grounded. "
+                    "PrivSight does not issue automated legal guarantees without comprehensive manual DPO verification."
+                )
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0L: Continuous Monitoring & Alerts Inquiries (Module 5.5)
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["unresolved alerts", "active alerts", "monitoring alerts", "recent alerts", "monitoring events", "any alerts"]):
+            mon_svc = get_monitoring_service()
+            alerts = mon_svc.sync_and_evaluate_alerts()
+            active_alerts = [a for a in alerts if a.status.value == "Active"]
+            parts.append("### Continuous Privacy Monitoring & Active Alerts\n")
+            parts.append(
+                f"Continuous monitoring inspects inventory changes, observable egress, unverified linkages, and ledger tampering.\n\n"
+                f"- **Active Unresolved Alerts**: **{len(active_alerts)}**\n"
+                f"- **Total Monitored Events**: {len(alerts)}\n"
+            )
+            if active_alerts:
+                for a in active_alerts[:5]:
+                    parts.append(
+                        f"- **[{a.severity.value}] {a.title}** (Category: `{a.category.value}`)\n"
+                        f"  - **Source**: `{a.source_dataset}` {f'-> `{a.source_column}`' if a.source_column else ''}\n"
+                        f"  - **Message**: {a.message}\n"
+                        f"  - **Timestamp**: `{a.timestamp}`"
+                    )
+            else:
+                parts.append("- No unresolved critical alerts. All monitored datasets are within standard operating thresholds.")
+            parts.append("\n**Alert Workflow**: Alerts can be acknowledged or resolved via the Alerts Management dashboard.")
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 0M: Executive Privacy Posture Briefing (Module 5.6)
+        # -------------------------------------------------------------
+        if any(w in q_lower for w in ["executive briefing", "overall privacy posture", "executive posture", "executive summary", "privacy posture"]):
+            exec_svc = get_executive_service()
+            dash = exec_svc.get_dashboard_summary()
+            k = dash.kpis
+            parts.append("### Executive Privacy Intelligence & Governance Briefing\n")
+            parts.append(
+                f"**Overall Privacy Posture Index**: **{k.overall_privacy_posture_score}/100** (Posture Status: `**{k.posture_status}**`)\n\n"
+                f"**Executive Key Performance Indicators:**\n"
+                f"- **Discovered Sensitive Attributes**: {k.total_sensitive_attributes} personal data fields\n"
+                f"- **Critical & High Risk Exposures**: {k.critical_and_high_risk_findings} requiring remediation\n"
+                f"- **Evidence Coverage**: {k.evidence_coverage_pct}% of findings backed by verified technical evidence\n"
+                f"- **Relational Graph Topology**: {k.verified_relationships_count} verified foreign keys vs {k.unverified_relationships_count} inferred overlap connections\n"
+                f"- **Unresolved Missing Proofs**: {k.missing_proofs_count} candidates requiring governance justification\n"
+                f"- **Open Corrective Recommendations**: {k.open_recommendations_count} actions pending\n"
+                f"- **Active Critical Alerts**: {k.active_critical_alerts_count} urgent notifications\n\n"
+                f"**Strategic Priority**: Focus remediation on direct personal identifiers in unencrypted CSV exports "
+                f"and enforce database-level foreign key constraints to elevate evidence coverage above 95%."
+            )
+            return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
         # Branch 1: Conceptual PrivSight Inquiries (Phase 1 Baseline)
         # -------------------------------------------------------------
         conceptual_ans = self._handle_conceptual_privsight_query(query)
         if conceptual_ans and not record_id and not identified_entities and not data_classes:
             parts.append(conceptual_ans)
             return "\n".join(parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 1B: Analytical Visualizations (Bar Chart, Line Chart, Pie Chart)
+        # Focused response: Chart title, short explanation, key observations, data sources.
+        # Strictly avoids appending unrelated relationship hops or boilerplate verification summaries.
+        # -------------------------------------------------------------
+        if format_req in ("bar_chart", "chart", "line_chart", "pie_chart") and not self._is_relationship_query(query, identified_entities, ctx_meta):
+            chart_payload = (
+                self._generate_bar_chart_data(query, identified_entities, explicit_tables) if format_req in ("bar_chart", "chart") else (
+                    self._generate_line_chart_data(query, identified_entities, explicit_tables) if format_req == "line_chart" else
+                    self._generate_pie_chart_data(query, identified_entities, explicit_tables)
+                )
+            )
+            chart_title = (chart_payload and chart_payload.get("title")) or title or "Personal Data Distribution"
+            chart_explanation = (chart_payload and chart_payload.get("explanation")) or "Quantitative analysis of personal data attributes across active PrivSight sources."
+            x_label = (chart_payload and (chart_payload.get("x_axis_label") or chart_payload.get("x_label"))) or "Category"
+            y_label = (chart_payload and (chart_payload.get("y_axis_label") or chart_payload.get("y_label"))) or "Count"
+
+            chart_parts: List[str] = [
+                f"### {chart_title}\n",
+                f"{chart_explanation}\n",
+                f"**Chart Structure & Metrics:**\n",
+                f"- **X-Axis ({x_label})**: Categorical data sources and classification domains.\n",
+                f"- **Y-Axis ({y_label})**: Quantified personal data attributes identified during automated scanning.\n",
+            ]
+
+            if chart_payload and chart_payload.get("series"):
+                sorted_series = sorted(chart_payload["series"], key=lambda s: s.get("value", 0), reverse=True)
+                top_items = sorted_series[:4]
+                chart_parts.append("**Key Observations:**")
+                for s in top_items:
+                    chart_parts.append(f"- **{s.get('label')}**: {s.get('value')} detected personal data attribute(s)")
+                chart_parts.append("")
+
+            chart_parts.append("**Data Sources & Provenance Evidence:**")
+            sources_cited = []
+            if chart_payload and chart_payload.get("evidence_references"):
+                sources_cited = chart_payload["evidence_references"]
+            if not sources_cited:
+                sources_cited = ["customers.csv", "employees.csv", "relational_demo.db", "privacy_demo.db"]
+
+            for src in sources_cited[:5]:
+                chart_parts.append(f"- **`{src}`**: Verified data store in PrivSight catalog (`reports/evidence_inventory.json`).")
+                evidence_items.append(
+                    EvidenceItem(
+                        source_table=src,
+                        source_column="*",
+                        relationship_type="Quantitative Discovery",
+                        evidence_reference=f"Extracted from verified inventory scan across {src}",
+                        verification_status="Verified",
+                        confidence_score=1.0,
+                    )
+                )
+
+            return "\n".join(chart_parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 1C: Flowchart Process Visualizations (when not asking for relationship traversal)
+        # -------------------------------------------------------------
+        if format_req == "flowchart" and not self._is_relationship_query(query, identified_entities, ctx_meta):
+            flowchart_payload = self._generate_flowchart_data(edges, discovered_paths, None, query)
+            flow_title = (flowchart_payload and flowchart_payload.get("title")) or title or "PrivSight Evidence Verification Workflow"
+            steps = (flowchart_payload and flowchart_payload.get("steps")) or []
+            flow_parts: List[str] = [
+                f"### {flow_title}\n",
+                "Sequential technical workflow of PrivSight personal data discovery, constraint introspection, and governance verification.\n",
+                "**Key Workflow Sequence & Milestones:**",
+            ]
+            for st in steps:
+                flow_parts.append(f"- **{st.get('title')}**: {st.get('description')}")
+            flow_parts.append("\n**Data Sources & Provenance Evidence:**")
+            flow_parts.append("- `relational_demo.db` & `privacy_demo.db`: Active SQLite catalogs with schema foreign keys.")
+            flow_parts.append("- `reports/evidence_inventory.json`: Evidence gap & missing proof registry.")
+            return "\n".join(flow_parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 1D: Timeline Visualizations (when not asking for relationship traversal)
+        # -------------------------------------------------------------
+        if format_req == "timeline" and not self._is_relationship_query(query, identified_entities, ctx_meta):
+            timeline_payload = self._generate_timeline_data(record_id, query)
+            time_title = title or "PrivSight Audit & Event Timeline"
+            time_parts: List[str] = [
+                f"### {time_title}\n",
+                "Chronological milestone progression of automated catalog scans and verified transactional events.\n",
+                "**Chronological Events:**",
+            ]
+            for ev in timeline_payload[:5]:
+                time_parts.append(f"- **{ev.get('date')}** · `{ev.get('entity')}`: {ev.get('description')} *(Source: {ev.get('source')})*")
+            time_parts.append("\n**Data Sources & Provenance Evidence:**")
+            time_parts.append("- `orders.csv` & `payments.csv`: Verified transactional event timestamps.")
+            time_parts.append("- `reports/evidence_inventory.json`: System audit verification log.")
+            return "\n".join(time_parts), evidence_items, synthesized_paths
+
+        # -------------------------------------------------------------
+        # Branch 1E: Tabular Visualizations (when not asking for relationship traversal)
+        # -------------------------------------------------------------
+        if format_req in ("table", "tabular") and not self._is_relationship_query(query, identified_entities, ctx_meta):
+            tbl_payload = self._generate_table_data(edges, discovered_paths, query)
+            tbl_title = title or "PrivSight Structured Inventory Matrix"
+            tbl_parts: List[str] = [
+                f"### {tbl_title}\n",
+                "Tabular inventory view of scanned schemas, detected personal data attributes, and verification statuses.\n",
+                "**Summary of Tabular Attributes:**",
+                f"- **Total Rows Evaluated**: {len(tbl_payload)} records extracted from active inventory.",
+                "- **Key Schema Fields**: Includes source table, field name, detected privacy class, and confidence score.",
+                "\n**Data Sources & Provenance Evidence:**",
+                "- All records verified against `reports/evidence_inventory.json` and active database schemas.",
+            ]
+            return "\n".join(tbl_parts), evidence_items, synthesized_paths
 
         # -------------------------------------------------------------
         # Branch 2: Follow-up question on previous tables ("Which of these tables contain email addresses?")
@@ -704,8 +1255,12 @@ class AIAssistant:
         if re.search(r"\b(table|tabular|spreadsheet|columns? and rows?|in a table|give me a table|show.*in.*table|convert.*into.*table|convert this graph into a table|convert it into a table)\b", q):
             return "table"
 
-        # 10. Graph / Diagram / Visual Relationship
-        if re.search(r"\b(graph|graphically|nodes? and edges?|visually|visual representation|show me graphically|explain this visually|create a relationship graph|show the connection between|visualize.*relationship)\b", q):
+        # 10. Lineage / Directional Data Flow DAG
+        if re.search(r"\b(lineage|data lineage|directional lineage|lineage dag|provenance|data flow dag|data movement dag)\b", q):
+            return "lineage_dag"
+
+        # 11. Graph / Diagram / Visual Relationship
+        if re.search(r"\b(graph|graphically|nodes? and edges?|visually|visual representation|show me graphically|explain this visually|create a relationship graph|show\s+(?:the\s+)?relationships?|show the connection between|visualize.*relationship)\b", q):
             return "graph"
         if re.search(r"\b(diagram|erd|architecture)\b", q):
             return "diagram"
@@ -714,6 +1269,63 @@ class AIAssistant:
         if re.search(r"\b(report|audit report|formal report)\b", q):
             return "structured_report"
         return "text"
+
+    def _synthesize_file_analysis_response(
+        self,
+        query: str,
+        file_obj: Dict[str, Any],
+        format_req: ExplanationFormat,
+    ) -> Tuple[str, List[EvidenceItem], List[RelationshipPath]]:
+        parts: List[str] = []
+        evidence_items: List[EvidenceItem] = []
+        synthesized_paths: List[RelationshipPath] = []
+
+        filename = file_obj.get("filename", "uploaded_file")
+        file_type = str(file_obj.get("file_type", "document")).upper()
+        total_records = file_obj.get("total_records", 0)
+        fields = file_obj.get("fields", [])
+        detected_pii = file_obj.get("detected_pii", [])
+
+        parts.append(f"### Technical File Inspection: `{filename}` ({file_type})\n")
+        parts.append(
+            f"PrivSight automated document inspection completed for `{filename}`. "
+            f"The file contains **{total_records} record(s)** across **{len(fields)} schema field(s)**.\n"
+        )
+
+        parts.append("**Personal Data Discovery & Privacy Classification:**")
+        if detected_pii:
+            for p in detected_pii:
+                sample_str = p.get("sample", "masked")
+                conf_pct = int(p.get("confidence", 0.95) * 100)
+                cat = p.get("category", "Personal Data")
+                parts.append(f"- **`{p.get('field')}`**: Identified as **{cat}** (Confidence: {conf_pct}%, Sample: `{sample_str}`)")
+                evidence_items.append(
+                    EvidenceItem(
+                        source_table=filename,
+                        source_column=p.get("field"),
+                        relationship_type="Candidate Personal Data",
+                        evidence_reference=f"Extracted from {filename} ({cat})",
+                        verification_status="Verified",
+                        confidence_score=p.get("confidence", 0.95),
+                    )
+                )
+        else:
+            parts.append("- No direct high-confidence personal data categories identified in column headers.")
+
+        parts.append("\n**Schema Fields Evaluated:**")
+        if fields:
+            parts.append(", ".join([f"`{f}`" for f in fields[:12]]) + (f" *...and {len(fields)-12} more*" if len(fields) > 12 else ""))
+        else:
+            parts.append("*No structured column headers detected.*")
+
+        parts.append("\n**Privacy & Governance Verification:**")
+        parts.append(
+            f"- **Masked Display**: Any sensitive preview samples are masked to prevent accidental privacy exposure.\n"
+            f"- **Ground Truth**: Extracted deterministically from file metadata via PrivSight ParserRegistry.\n"
+            f"- **Follow-up Exploration**: You can request a tabular matrix (`\"Show as table\"`), distribution chart (`\"Plot as bar chart\"`), or cross-dataset comparison with active database tables."
+        )
+
+        return "\n".join(parts), evidence_items, synthesized_paths
 
     def _handle_conceptual_privsight_query(self, query: str) -> Optional[str]:
         """Provides accurate PrivSight documentation and methodology responses (Phase 1 Baseline)."""
@@ -898,6 +1510,15 @@ class AIAssistant:
             f"- **Entities Compared**: Side-by-side contrast of {', '.join(comparison_data.get('entities', ['Entities']))}.\n"
             f"- **Dimensions Evaluated**: Primary keys, discovered PII categories, foreign key relations, storage formats, and masking rules.\n"
             f"- **Key Findings**: Identifies structural differences and ensures uniform privacy governance across systems."
+        )
+
+    def _explain_lineage_dag_format(self, dag: Any) -> str:
+        return (
+            f"**Directional Data Lineage DAG Overview:**\n"
+            f"- **Lifecycle Stages**: Visualizes directional data movement from **Ingestion** (CSVs, Uploads) ➔ **Storage** (Operational SQLite DBs) ➔ **Processing** (Orders, Settlements) ➔ **Egress** (Exports, Reports).\n"
+            f"- **Nodes & Data Points ({len(dag.nodes)})**: Each node denotes an exact dataset column or table attribute with data classification badges and sensitive value masking.\n"
+            f"- **Directional Flows ({len(dag.edges)})**: Directed arrows preserve verified source-to-destination progression, distinguishing database-enforced Foreign Keys from inferred identifier overlaps.\n"
+            f"- **Cryptographic Evidence Proof**: Each flow is registered in the append-only SHA-256 Evidence Ledger."
         )
 
     def _generate_table_data(

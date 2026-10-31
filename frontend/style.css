@@ -3017,7 +3017,7 @@ tbody tr:hover {
   flex: 1 1 0%;
   min-height: 0;
   overflow-y: auto;
-  padding: 1.25rem 1.5rem 1rem;
+  padding: 1.25rem 1.5rem 3.5rem;
   display: flex;
   flex-direction: column;
   scroll-behavior: smooth;
@@ -3030,6 +3030,7 @@ tbody tr:hover {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding-bottom: 2.5rem;
 }
 
 /* Hero / Empty State */
@@ -3126,6 +3127,10 @@ tbody tr:hover {
 .tracera-message-row {
   width: 100%;
   display: flex;
+}
+
+.tracera-message-row:last-child {
+  margin-bottom: 2.25rem;
 }
 
 /* USER MESSAGE: STRICT RIGHT ALIGNMENT */
@@ -3660,7 +3665,7 @@ tbody tr:hover {
   margin: 0.85rem 0 1.15rem 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -3812,14 +3817,15 @@ tbody tr:hover {
   background: var(--tracera-viz-bg);
   border: 1px solid var(--tracera-viz-card-border);
   border-radius: 6px;
-  padding: 1rem 0.85rem;
+  padding: 1.15rem 1rem 1rem 1rem;
   box-sizing: border-box;
+  overflow-x: auto;
 }
 
 .tracera-chart-svg {
   width: 100%;
   height: auto;
-  max-height: 320px;
+  min-height: 200px;
   display: block;
 }
 
@@ -4088,6 +4094,577 @@ tbody tr:hover {
 .tracera-timeline-card:hover {
   border-color: rgba(212, 167, 44, 0.4);
 }
+
+/* 8. Fallback & Format Error Notices */
+.tracera-viz-fallback {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.15rem;
+  background: rgba(212, 167, 44, 0.05);
+  border: 1px solid rgba(212, 167, 44, 0.22);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--tracera-viz-text-primary);
+  line-height: 1.45;
+}
+
+.tracera-chart-bar:hover {
+  filter: brightness(1.2);
+  opacity: 1 !important;
+}
+
+.tracera-chart-slice:hover {
+  filter: brightness(1.15);
+  opacity: 0.9 !important;
+}
+
+/* ==========================================================================
+   9. TRACERA VISUALIZATION IMAGE EXPORT & DOWNLOAD TOOLBAR
+   ========================================================================== */
+
+.tracera-visual-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--tracera-viz-card-border);
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tracera-visual-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.tracera-export-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tracera-export-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #CBD5E1;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 0.22rem 0.52rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.tracera-export-btn:hover {
+  background: rgba(212, 167, 44, 0.14);
+  border-color: rgba(212, 167, 44, 0.45);
+  color: var(--accent-gold);
+}
+
+.tracera-export-btn:active {
+  transform: translateY(1px);
+}
+
+.tracera-export-btn.active,
+.tracera-export-btn.success {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #10B981 !important;
+}
+
+.tracera-export-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.tracera-export-btn-cfg {
+  color: var(--text-muted);
+  padding: 0.22rem 0.45rem;
+}
+
+.tracera-export-btn-cfg:hover {
+  color: var(--accent-gold);
+}
+
+.tracera-scale-badge {
+  font-size: 0.65rem;
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+/* Export Settings Popover */
+.tracera-export-popover-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tracera-export-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 220px;
+  background: #0B0F17;
+  border: 1px solid rgba(212, 167, 44, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+  padding: 0.8rem;
+  z-index: 100;
+  backdrop-filter: blur(14px);
+}
+
+.tracera-export-popover.open {
+  display: block;
+  animation: traceraFadeDown 0.15s ease;
+}
+
+@keyframes traceraFadeDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tracera-export-popover-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-gold);
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid #1E2738;
+  padding-bottom: 0.35rem;
+  font-family: var(--font-mono);
+}
+
+.tracera-export-popover-row {
+  margin-bottom: 0.65rem;
+}
+
+.tracera-export-popover-row:last-child {
+  margin-bottom: 0;
+}
+
+.tracera-popover-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.tracera-btn-toggle-group {
+  display: flex;
+  gap: 3px;
+  background: #111622;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid #1E2738;
+}
+
+.tracera-toggle-opt {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 0.28rem 0.35rem;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.tracera-toggle-opt:hover {
+  color: #F8FAFC;
+}
+
+.tracera-toggle-opt.active {
+  background: rgba(212, 167, 44, 0.2);
+  color: var(--accent-gold);
+  border: 1px solid rgba(212, 167, 44, 0.4);
+}
+
+/* ==========================================================================
+   TRACERA PHASE 4: ADVANCED CONVERSATIONAL & FILE INTELLIGENCE STYLES
+   ========================================================================== */
+
+/* File Attach Button in Composer */
+.tracera-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tracera-attach-btn:hover {
+  background: rgba(212, 167, 44, 0.15);
+  border-color: rgba(212, 167, 44, 0.4);
+  color: var(--accent-gold);
+}
+
+/* Attachment Tray & Pill Chips */
+.tracera-attachment-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0.2rem 0.4rem;
+  width: 100%;
+}
+
+.tracera-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #19202E;
+  border: 1px solid rgba(212, 167, 44, 0.3);
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.2s ease;
+}
+
+.tracera-attachment-chip .chip-icon {
+  font-size: 0.95rem;
+}
+
+.tracera-attachment-chip .chip-name {
+  font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracera-attachment-chip .chip-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.tracera-attachment-chip .chip-pii-badge {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #F87171;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.tracera-attachment-chip .chip-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color 0.15s ease;
+}
+
+.tracera-attachment-chip .chip-remove-btn:hover {
+  color: var(--color-danger);
+}
+
+/* User Message Attachment Badge */
+.tracera-user-attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  color: #E2E8F0;
+  margin-bottom: 0.4rem;
+}
+
+/* Stop Generating Button */
+.tracera-stop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 6px;
+  color: #FCA5A5;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  animation: pulse-stop 1.8s infinite;
+}
+
+@keyframes pulse-stop {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.35); }
+  50% { border-color: rgba(239, 68, 68, 0.75); }
+}
+
+.tracera-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #FFFFFF;
+}
+
+.tracera-stop-btn .stop-icon {
+  font-size: 0.7rem;
+  color: #EF4444;
+}
+
+/* Streaming Blinking Cursor */
+.tracera-streaming-cursor {
+  display: inline-block;
+  color: var(--accent-gold);
+  animation: blink-cursor 0.75s infinite;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* User Message Edit Button & Form */
+.tracera-user-bubble {
+  position: relative;
+}
+
+.tracera-msg-edit-btn {
+  position: absolute;
+  top: 0.4rem;
+  left: -28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.tracera-message-row.user:hover .tracera-msg-edit-btn {
+  opacity: 1;
+}
+
+.tracera-msg-edit-btn:hover {
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.tracera-edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 280px;
+}
+
+.tracera-edit-textarea {
+  width: 100%;
+  background: #111622;
+  border: 1px solid rgba(212, 167, 44, 0.5);
+  border-radius: 6px;
+  color: #F8FAFC;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  padding: 0.5rem;
+  resize: vertical;
+  min-height: 56px;
+  outline: none;
+}
+
+.tracera-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* ==========================================================================
+   Phase 5.1 — Directional Lineage, Evidence Ledger & Egress Tracker Styles
+   ========================================================================== */
+
+.stat-mini-pill {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem 0.65rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  min-width: 90px;
+}
+
+.stat-mini-pill .label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.stat-mini-pill .val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.lineage-subtabs-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lineage-subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.lineage-subtab-btn:hover {
+  color: var(--accent-gold);
+}
+
+.lineage-subtab-btn.active {
+  color: var(--accent-gold);
+  border-bottom-color: var(--accent-gold);
+  background: rgba(212, 167, 44, 0.05);
+}
+
+.filter-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  border-color: var(--accent-gold);
+}
+
+.badge-stage-ingestion {
+  background: rgba(6, 182, 212, 0.15);
+  color: #06B6D4;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.badge-stage-storage {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.badge-stage-processing {
+  background: rgba(212, 167, 44, 0.15);
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.badge-stage-egress {
+  background: rgba(249, 115, 22, 0.15);
+  color: #F97316;
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+.badge-egress-op {
+  background: rgba(249, 115, 22, 0.12);
+  color: #F97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  font-weight: 700;
+}
+
+.hash-pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  background: #070A0F;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.5rem;
+  color: var(--accent-gold);
+  cursor: pointer;
+  word-break: break-all;
+  transition: var(--transition-fast);
+}
+
+.hash-pill:hover {
+  border-color: var(--accent-gold);
+  background: rgba(212, 167, 44, 0.08);
+}
+
+@media (max-width: 1024px) {
+  .lineage-main-grid {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+  #cyLineageContainer {
+    height: 480px !important;
+  }
+}
+
+/* Phase 5.2 - 5.7 Enterprise Intelligence Styles */
+.enterprise-tab-panel {
+  display: none;
+  animation: enterpriseFadeIn 0.2s ease-in-out;
+}
+
+.enterprise-tab-panel.active {
+  display: block;
+}
+
+@keyframes enterpriseFadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
 
 

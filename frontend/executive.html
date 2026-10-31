@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Executive Intelligence Dashboard</title>
+  <meta name="description" content="Executive Privacy Posture, Intelligent Risk Assessment, AI Recommendations, Compliance & Continuous Monitoring">
+
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery &amp; Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Missing Proof</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <a href="/lineage" class="nav-item" id="navLineage">
+          <span class="nav-item-icon">🔀</span>
+          <span class="nav-item-label">Directional Lineage</span>
+          <span class="nav-badge" style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-weight: 700;">5.1</span>
+        </a>
+
+        <a href="/tracera" class="nav-item" id="navTracera">
+          <span class="nav-item-icon">⚡</span>
+          <span class="nav-item-label">TRACERA</span>
+          <span class="nav-badge" style="background: var(--accent-gold); color: #000; font-weight: 700;">AI</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Enterprise Intelligence</div>
+
+        <a href="/executive" class="nav-item active" id="navExecutive">
+          <span class="nav-item-icon">📈</span>
+          <span class="nav-item-label">Executive Dashboard</span>
+          <span class="nav-badge" style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; font-weight: 700;">5.6</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance &amp; Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports &amp; Downloads</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Enterprise Privacy</div>
+          <div>Modules 5.2 – 5.7 Active</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="app-main">
+      
+      <!-- TOP NAV -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="icon-btn sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Navigation">
+            <span class="icon">☰</span>
+          </button>
+          <div>
+            <h1 class="header-title" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>Executive Privacy Intelligence</span>
+              <span class="nav-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); font-size: 0.75rem; padding: 0.15rem 0.5rem;">Phase 5.2 – 5.7</span>
+            </h1>
+            <p class="header-subtitle">Consolidated Privacy Posture, Risk Scoring, Actionable Insights, ROPA &amp; Continuous Alerts</p>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="stat-mini-pill" id="postureMiniBadge" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #10B981;">
+            <span style="font-weight: 700;">Posture:</span> <span id="hdrPostureVal">Loading...</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnRefreshEnterprise">
+            <span>🔄</span> <span>Refresh Intelligence</span>
+          </button>
+          <a href="/tracera" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 0.35rem;">
+            <span>⚡</span> <span>Ask TRACERA</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- SUBTABS BAR -->
+      <div class="lineage-subtabs-bar" style="border-bottom: 1px solid var(--border-color); padding: 0.5rem 1.5rem; background: var(--bg-surface); display: flex; gap: 0.5rem; overflow-x: auto;">
+        <button class="lineage-subtab-btn active" data-tab="tab-overview" id="subtabOverview">
+          <span>📈 Executive Overview</span>
+        </button>
+        <button class="lineage-subtab-btn" data-tab="tab-risk" id="subtabRisk">
+          <span>🛡️ Risk Assessment (5.2)</span>
+        </button>
+        <button class="lineage-subtab-btn" data-tab="tab-recs" id="subtabRecs">
+          <span>💡 Action Recommendations (5.3)</span>
+          <span class="nav-badge" id="subtabRecsBadge" style="background: rgba(245,158,11,0.2); color: var(--accent-gold); margin-left: 0.3rem;">0</span>
+        </button>
+        <button class="lineage-subtab-btn" data-tab="tab-compliance" id="subtabCompliance">
+          <span>📜 Compliance &amp; ROPA (5.4)</span>
+        </button>
+        <button class="lineage-subtab-btn" data-tab="tab-alerts" id="subtabAlerts">
+          <span>🔔 Monitoring &amp; Alerts (5.5)</span>
+          <span class="nav-badge" id="subtabAlertsBadge" style="background: rgba(244,63,94,0.2); color: #F43F5E; margin-left: 0.3rem;">0</span>
+        </button>
+      </div>
+
+      <div class="app-content" style="padding: 1.5rem;">
+        
+        <!-- ============================================================
+             SUBTAB 1: EXECUTIVE OVERVIEW (Module 5.6)
+             ============================================================ -->
+        <section id="tab-overview" class="enterprise-tab-panel active">
+          
+          <!-- TOP 4 HERO KPI CARDS -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.25rem;">
+            
+            <div class="stat-card" style="border-left: 4px solid var(--accent-gold);">
+              <div class="stat-label">Privacy Posture Index</div>
+              <div class="stat-value" id="kpiPostureScore" style="color: var(--accent-gold); font-size: 2rem;">--/100</div>
+              <div class="stat-desc" id="kpiPostureStatus">Multi-factor Evidence Score</div>
+            </div>
+
+            <div class="stat-card" style="border-left: 4px solid #10B981;">
+              <div class="stat-label">Discovered Sensitive Attributes</div>
+              <div class="stat-value" id="kpiTotalAttrs" style="color: #10B981; font-size: 2rem;">--</div>
+              <div class="stat-desc">Across all scanned file &amp; SQL sources</div>
+            </div>
+
+            <div class="stat-card" style="border-left: 4px solid #EF4444;">
+              <div class="stat-label">Critical &amp; High Exposures</div>
+              <div class="stat-value" id="kpiCritHighCount" style="color: #EF4444; font-size: 2rem;">--</div>
+              <div class="stat-desc">Requires immediate governance remediation</div>
+            </div>
+
+            <div class="stat-card" style="border-left: 4px solid #06B6D4;">
+              <div class="stat-label">Evidence Coverage Rate</div>
+              <div class="stat-value" id="kpiEvidenceCov" style="color: #06B6D4; font-size: 2rem;">--%</div>
+              <div class="stat-desc">Backed by technical evidence &amp; constraints</div>
+            </div>
+
+          </div>
+
+          <!-- SECONDARY KPI ROW -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.5rem;">
+            <div class="stat-card" style="padding: 0.85rem 1rem;">
+              <div class="stat-label" style="font-size: 0.72rem;">Verified Relational Flows</div>
+              <div class="stat-value" id="kpiVerifiedEdges" style="font-size: 1.35rem; color: #10B981;">--</div>
+            </div>
+            <div class="stat-card" style="padding: 0.85rem 1rem;">
+              <div class="stat-label" style="font-size: 0.72rem;">Unverified / Inferred Flows</div>
+              <div class="stat-value" id="kpiInferredEdges" style="font-size: 1.35rem; color: #F59E0B;">--</div>
+            </div>
+            <div class="stat-card" style="padding: 0.85rem 1rem;">
+              <div class="stat-label" style="font-size: 0.72rem;">Active Missing Proofs</div>
+              <div class="stat-value" id="kpiMissingProofs" style="font-size: 1.35rem; color: #EF4444;">--</div>
+            </div>
+            <div class="stat-card" style="padding: 0.85rem 1rem;">
+              <div class="stat-label" style="font-size: 0.72rem;">Open Recommendations</div>
+              <div class="stat-value" id="kpiOpenRecs" style="font-size: 1.35rem; color: var(--accent-gold);">--</div>
+            </div>
+            <div class="stat-card" style="padding: 0.85rem 1rem;">
+              <div class="stat-label" style="font-size: 0.72rem;">Active Critical Alerts</div>
+              <div class="stat-value" id="kpiActiveAlerts" style="font-size: 1.35rem; color: #F43F5E;">--</div>
+            </div>
+          </div>
+
+          <!-- TWO-COLUMN EXECUTIVE DASHBOARD GRID -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+            
+            <!-- Framework Readiness Comparison -->
+            <div class="card" style="padding: 1.25rem;">
+              <div class="card-header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-bright); margin: 0;">Multi-Framework Compliance Readiness</h3>
+                <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3B82F6;">Module 5.4</span>
+              </div>
+              <div id="frameworkProgressContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Populated dynamically -->
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Loading compliance readiness...</div>
+              </div>
+            </div>
+
+            <!-- Risk Severity Distribution -->
+            <div class="card" style="padding: 1.25rem;">
+              <div class="card-header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-bright); margin: 0;">Privacy Risk Distribution</h3>
+                <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #EF4444;">Module 5.2</span>
+              </div>
+              <div id="riskDistributionBars" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <!-- Populated dynamically -->
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Calculating risk distribution...</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TOP VULNERABLE DATASETS & RECENT AUDIT TRAIL -->
+          <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 1.25rem;">
+            
+            <!-- Top Vulnerable Tables -->
+            <div class="card" style="padding: 1.25rem;">
+              <div class="card-header" style="margin-bottom: 0.85rem;">
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-bright); margin: 0;">Top Vulnerable Datasets &amp; Tables</h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Ranked by max attribute exposure score, unverified linkages, and egress surface</p>
+              </div>
+              <div class="table-container" style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; font-size: 0.82rem;">
+                  <thead>
+                    <tr>
+                      <th>Dataset / Table</th>
+                      <th>Entity</th>
+                      <th>Max Risk</th>
+                      <th>Severity</th>
+                      <th>Missing Proofs</th>
+                      <th>Key Risk Factor</th>
+                    </tr>
+                  </thead>
+                  <tbody id="topVulnerableTablesBody">
+                    <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading vulnerable datasets...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recent Immutable Audit Trail -->
+            <div class="card" style="padding: 1.25rem;">
+              <div class="card-header" style="margin-bottom: 0.85rem;">
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-bright); margin: 0;">Audit Trail Stream</h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Cryptographic logs of scans, recommendations &amp; resolutions</p>
+              </div>
+              <div id="auditLogStream" style="display: flex; flex-direction: column; gap: 0.65rem; max-height: 280px; overflow-y: auto;">
+                <div style="color: var(--text-muted); font-size: 0.82rem;">Loading audit events...</div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ============================================================
+             SUBTAB 2: INTELLIGENT RISK ASSESSMENT (Module 5.2)
+             ============================================================ -->
+        <section id="tab-risk" class="enterprise-tab-panel" style="display: none;">
+          
+          <!-- Methodology Banner -->
+          <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.25);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-weight: 700; color: var(--accent-gold); font-size: 0.95rem;">PrivSight Deterministic Risk Scoring Methodology (v5.2)</span>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10B981;">No Synthetic Scores</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.45;">
+              Every score (0–100) is calculated from four deterministic pillars: <strong>Data Sensitivity (45%)</strong> (SSN, credit cards, credentials) + 
+              <strong>Evidence Gaps (25%)</strong> (missing proofs, unverified referential hops) + <strong>Egress Surface (20%)</strong> (observable exports &amp; copies) + 
+              <strong>Storage Posture (10%)</strong> (unencrypted flat files vs relational DB).
+            </p>
+          </div>
+
+          <!-- Risk Filters -->
+          <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+            <select class="filter-select" id="riskSeverityFilter" style="max-width: 180px;">
+              <option value="">All Severities</option>
+              <option value="Critical">Critical (>=80)</option>
+              <option value="High">High (60-79)</option>
+              <option value="Medium">Medium (40-59)</option>
+              <option value="Low">Low (1-39)</option>
+            </select>
+            <input type="text" class="input-text" id="riskFieldSearch" placeholder="Search table or attribute..." style="max-width: 260px; font-size: 0.82rem; padding: 0.45rem 0.75rem;">
+            <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: auto;" id="riskAssessmentMeta">Showing all assessed fields</span>
+          </div>
+
+          <!-- Detailed Field-Level Risk Matrix Table -->
+          <div class="card" style="padding: 1.25rem;">
+            <div class="table-container" style="overflow-x: auto;">
+              <table class="data-table" style="width: 100%; font-size: 0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Field Identifier</th>
+                    <th>Entity</th>
+                    <th>PII Classification</th>
+                    <th>Risk Score</th>
+                    <th>Severity</th>
+                    <th>Evidence Status</th>
+                    <th>Egress</th>
+                    <th>Contributing Rationale</th>
+                  </tr>
+                </thead>
+                <tbody id="riskTableBody">
+                  <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Loading risk records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ============================================================
+             SUBTAB 3: AI RECOMMENDATIONS ACTION BOARD (Module 5.3)
+             ============================================================ -->
+        <section id="tab-recs" class="enterprise-tab-panel" style="display: none;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.25rem 0;">Evidence-Grounded Action Recommendations</h2>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Derived directly from critical exposure scores, missing proofs, and observable egress events</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <select class="filter-select" id="recStatusFilter" style="max-width: 160px;">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Accepted">Accepted</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Dismissed">Dismissed</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Board Cards Container -->
+          <div id="recommendationsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem;">Loading recommendations...</div>
+          </div>
+
+        </section>
+
+        <!-- ============================================================
+             SUBTAB 4: COMPLIANCE & ROPA INTELLIGENCE (Module 5.4)
+             ============================================================ -->
+        <section id="tab-compliance" class="enterprise-tab-panel" style="display: none;">
+          
+          <!-- ROPA Header & Export -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.25rem 0;">Article 30 Records of Processing Activities (ROPA)</h2>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Automated synthesis of data processing operations, data subject domains, and transfer safeguards</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnExportROPA">
+              <span>📥</span> <span>Export ROPA JSON</span>
+            </button>
+          </div>
+
+          <!-- ROPA Table -->
+          <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div class="table-container" style="overflow-x: auto;">
+              <table class="data-table" style="width: 100%; font-size: 0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Activity ID &amp; Purpose</th>
+                    <th>Data Subjects</th>
+                    <th>Personal Data Categories</th>
+                    <th>Storage Locations</th>
+                    <th>Retention &amp; Security</th>
+                    <th>Evidence Status</th>
+                  </tr>
+                </thead>
+                <tbody id="ropaTableBody">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Generating ROPA records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Detailed Framework Controls Breakdown -->
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.85rem 0;">Multi-Framework Regulatory Control Checklist</h3>
+          <div id="frameworkDetailsContainer" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- Populated dynamically -->
+          </div>
+
+        </section>
+
+        <!-- ============================================================
+             SUBTAB 5: CONTINUOUS MONITORING & ALERTS (Module 5.5)
+             ============================================================ -->
+        <section id="tab-alerts" class="enterprise-tab-panel" style="display: none;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.25rem 0;">Continuous Monitoring Alerts</h2>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Automated detection of sensitive data exposure, observable egress anomalies, and evidence ledger tampering</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-primary btn-sm" id="btnSyncAlerts">
+                <span>⚡</span> <span>Scan &amp; Sync Alerts</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Alerts Table -->
+          <div class="card" style="padding: 1.25rem;">
+            <div class="table-container" style="overflow-x: auto;">
+              <table class="data-table" style="width: 100%; font-size: 0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Category</th>
+                    <th>Title &amp; Message</th>
+                    <th>Source Resource</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="alertsTableBody">
+                  <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading active alerts...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- RECOMMENDATION STATUS UPDATE MODAL -->
+  <div class="modal-backdrop" id="recModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); width: 90%; max-width: 500px; padding: 1.5rem;">
+      <h3 id="recModalTitle" style="font-size: 1.05rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.75rem 0;">Update Recommendation Status</h3>
+      <p id="recModalDesc" style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 1rem 0;"></p>
+      
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">New Status</label>
+        <select class="filter-select" id="recModalStatusSelect" style="width: 100%;">
+          <option value="Accepted">Accepted</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="Dismissed">Dismissed</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Governance &amp; Resolution Notes</label>
+        <textarea class="input-text" id="recModalNotes" rows="3" placeholder="Explain technical action taken or reason for dismissal..." style="width: 100%; font-size: 0.82rem; padding: 0.5rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button class="btn btn-secondary btn-sm" id="btnCancelRecModal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="btnSubmitRecModal">Save Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERT RESOLVE MODAL -->
+  <div class="modal-backdrop" id="alertModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); width: 90%; max-width: 500px; padding: 1.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.75rem 0;">Resolve Monitoring Alert</h3>
+      <p id="alertModalMessage" style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 1rem 0;"></p>
+      
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">Remediation Notes</label>
+        <textarea class="input-text" id="alertModalNotes" rows="3" placeholder="Detail how the alert was resolved (e.g. key masked, file removed, consent confirmed)..." style="width: 100%; font-size: 0.82rem; padding: 0.5rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button class="btn btn-secondary btn-sm" id="btnCancelAlertModal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="btnSubmitAlertModal" style="background: #10B981; border-color: #10B981; color: #fff;">Confirm Resolution</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script src="/static/executive.js?v=25"></script>
+</body>
+</html>

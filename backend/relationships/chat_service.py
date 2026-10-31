@@ -66,7 +66,7 @@ def init_chat_tables(db_path: Optional[Path] = None) -> None:
                 """
             )
             # Schema migrations for existing SQLite databases
-            for col in ["chart_data", "structured_data", "response_type"]:
+            for col in ["chart_data", "structured_data", "response_type", "attachment"]:
                 try:
                     conn.execute(f"ALTER TABLE ai_chat_messages ADD COLUMN {col} TEXT")
                 except Exception:
@@ -157,7 +157,7 @@ class ChatPersistenceService:
                 SELECT id, conversation_id, role, content, format_requested,
                        format_explanation, graph_data, table_data, timeline_data,
                        flowchart_data, chart_data, structured_data, response_type,
-                       sources_used, created_at
+                       sources_used, attachment, created_at
                 FROM ai_chat_messages
                 WHERE conversation_id = ?
                 ORDER BY created_at ASC
@@ -183,6 +183,7 @@ class ChatPersistenceService:
                         structured_data=json.loads(m["structured_data"]) if ("structured_data" in m.keys() and m["structured_data"]) else None,
                         response_type=m["response_type"] if "response_type" in m.keys() else None,
                         sources_used=json.loads(m["sources_used"]) if m["sources_used"] else [],
+                        attachment=json.loads(m["attachment"]) if ("attachment" in m.keys() and m["attachment"]) else None,
                         created_at=m["created_at"],
                     )
                 )
@@ -214,6 +215,7 @@ class ChatPersistenceService:
         structured_data: Optional[Dict[str, Any]] = None,
         response_type: Optional[str] = None,
         sources_used: Optional[List[str]] = None,
+        attachment: Optional[Dict[str, Any]] = None,
     ) -> ChatMessage:
         conn = self._conn()
         try:
@@ -234,8 +236,8 @@ class ChatPersistenceService:
                         id, conversation_id, role, content, format_requested,
                         format_explanation, graph_data, table_data, timeline_data,
                         flowchart_data, chart_data, structured_data, response_type,
-                        sources_used, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        sources_used, attachment, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         msg_id,
@@ -252,6 +254,7 @@ class ChatPersistenceService:
                         json.dumps(structured_data) if structured_data else None,
                         response_type or format_requested,
                         json.dumps(sources_used) if sources_used else None,
+                        json.dumps(attachment) if attachment else None,
                         now,
                     ),
                 )
@@ -286,8 +289,102 @@ class ChatPersistenceService:
                 structured_data=structured_data,
                 response_type=response_type or format_requested,
                 sources_used=sources_used or [],
+                attachment=attachment,
                 created_at=now,
             )
+        finally:
+            conn.close()
+
+    def edit_user_message(
+        self,
+        conv_id: str,
+        user_id: int,
+        message_id: str,
+        new_content: str,
+    ) -> Optional[ChatMessage]:
+        """
+        Edits a previous user message, updates its content,
+        and deletes all subsequent messages in the conversation to allow
+        clean regeneration without duplicate turns.
+        """
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?", (conv_id, user_id))
+            if not cur.fetchone():
+                return None
+
+            cur.execute("SELECT id, created_at, role, format_requested, attachment FROM ai_chat_messages WHERE id = ? AND conversation_id = ?", (message_id, conv_id))
+            target_msg = cur.fetchone()
+            if not target_msg:
+                return None
+
+            target_time = target_msg["created_at"]
+            now = datetime.now(timezone.utc).isoformat()
+
+            with conn:
+                # Prune trailing messages created after this user message
+                conn.execute(
+                    "DELETE FROM ai_chat_messages WHERE conversation_id = ? AND id != ? AND created_at >= ?",
+                    (conv_id, message_id, target_time),
+                )
+                conn.execute(
+                    "UPDATE ai_chat_messages SET content = ? WHERE id = ?",
+                    (new_content.strip(), message_id),
+                )
+                conn.execute(
+                    "UPDATE ai_conversations SET updated_at = ? WHERE id = ?",
+                    (now, conv_id),
+                )
+
+            return ChatMessage(
+                id=message_id,
+                conversation_id=conv_id,
+                role=target_msg["role"],
+                content=new_content.strip(),
+                format_requested=target_msg["format_requested"] or "text",
+                attachment=json.loads(target_msg["attachment"]) if ("attachment" in target_msg.keys() and target_msg["attachment"]) else None,
+                created_at=target_time,
+            )
+        finally:
+            conn.close()
+
+    def prune_messages_after(self, conv_id: str, user_id: int, message_id: str) -> bool:
+        """Deletes all messages strictly after the specified message in the conversation."""
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?", (conv_id, user_id))
+            if not cur.fetchone():
+                return False
+
+            cur.execute("SELECT created_at FROM ai_chat_messages WHERE id = ? AND conversation_id = ?", (message_id, conv_id))
+            row = cur.fetchone()
+            if not row:
+                return False
+
+            with conn:
+                conn.execute(
+                    "DELETE FROM ai_chat_messages WHERE conversation_id = ? AND id != ? AND created_at >= ?",
+                    (conv_id, message_id, row["created_at"]),
+                )
+                now = datetime.now(timezone.utc).isoformat()
+                conn.execute("UPDATE ai_conversations SET updated_at = ? WHERE id = ?", (now, conv_id))
+            return True
+        finally:
+            conn.close()
+
+    def delete_message(self, conv_id: str, user_id: int, message_id: str) -> bool:
+        """Deletes a specific message and any following response."""
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM ai_conversations WHERE id = ? AND user_id = ?", (conv_id, user_id))
+            if not cur.fetchone():
+                return False
+            with conn:
+                cur = conn.execute("DELETE FROM ai_chat_messages WHERE id = ? AND conversation_id = ?", (message_id, conv_id))
+                return cur.rowcount > 0
         finally:
             conn.close()
 

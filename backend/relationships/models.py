@@ -51,6 +51,8 @@ ExplanationFormat = Literal[
     "step_by_step",
     "comparison",
     "structured_report",
+    "lineage",
+    "lineage_dag",
 ]
 
 
@@ -173,6 +175,7 @@ class RelationshipReport(BaseModel):
     evidence_items: Optional[List[EvidenceItem]] = None
     identified_entities: Optional[List[Dict[str, Any]]] = None
     context_state: Optional[Dict[str, Any]] = None
+    lineage_dag: Optional[Dict[str, Any]] = None
 
 
 # --- Chat & Conversation Persistence Models ---
@@ -191,8 +194,10 @@ class ChatMessage(BaseModel):
     timeline_data: Optional[List[Dict[str, Any]]] = None
     flowchart_data: Optional[Dict[str, Any]] = None
     chart_data: Optional[Dict[str, Any]] = None
+    lineage_dag: Optional[Dict[str, Any]] = None
     structured_data: Optional[Dict[str, Any]] = None
     sources_used: List[str] = Field(default_factory=list)
+    attachment: Optional[Dict[str, Any]] = None
     created_at: str
 
 
@@ -222,6 +227,7 @@ class ChatQueryRequest(BaseModel):
     conversation_id: Optional[str] = None
     selected_sources: Optional[List[str]] = None
     format_preference: Optional[ExplanationFormat] = None
+    attachment: Optional[Dict[str, Any]] = None
 
 
 class CreateConversationRequest(BaseModel):
@@ -232,3 +238,28 @@ class CreateConversationRequest(BaseModel):
 class RenameConversationRequest(BaseModel):
     """Rename a conversation title."""
     title: str
+
+
+class EditMessageRequest(BaseModel):
+    """Payload to edit a previous user message."""
+    content: str
+
+
+class RegenerateRequest(BaseModel):
+    """Payload to regenerate an assistant response."""
+    message_id: Optional[str] = None
+
+
+class ConversationUploadResponse(BaseModel):
+    """Structured response from uploading an attachment to a TRACERA conversation."""
+    status: str = "success"
+    filename: str
+    file_type: str
+    file_size: int
+    total_records: int
+    fields_count: int
+    fields: List[str] = Field(default_factory=list)
+    detected_pii: List[Dict[str, Any]] = Field(default_factory=list)
+    summary: str
+    attachment_id: str
+

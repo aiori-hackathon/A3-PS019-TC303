@@ -55,6 +55,8 @@ from backend.parsers import (
     UnsupportedFormatError,
     get_parser_registry,
 )
+from backend.enterprise.routes import enterprise_router
+from backend.lineage.routes import lineage_router
 from backend.relationships.routes import relationships_router
 from backend.scanner.scanner_service import ScannerService
 
@@ -130,6 +132,12 @@ app.include_router(auth_router)
 
 # AI Relationship Intelligence Assistant router
 app.include_router(relationships_router)
+
+# Phase 5.1 Directional Lineage, Evidence Integrity & Egress Tracking
+app.include_router(lineage_router)
+
+# Phase 5.2 - 5.7 Enterprise Privacy Intelligence router
+app.include_router(enterprise_router)
 
 
 # ---------------------------------------------------------------------------
@@ -1301,6 +1309,21 @@ if FRONTEND_DIR.exists():
     def serve_frontend_tracera(request: Request):
         """Serves the dedicated TRACERA AI Relationship Intelligence Assistant page (protected)."""
         return _require_auth_page(request, "tracera.html")
+
+    @app.get("/lineage", include_in_schema=False)
+    @app.get("/lineage.html", include_in_schema=False)
+    def serve_frontend_lineage(request: Request):
+        """Serves the Phase 5.1 Directional Data Lineage & Evidence Ledger page (protected)."""
+        return _require_auth_page(request, "lineage.html")
+
+    @app.get("/executive", include_in_schema=False)
+    @app.get("/executive.html", include_in_schema=False)
+    @app.get("/risk-assessment", include_in_schema=False)
+    @app.get("/compliance", include_in_schema=False)
+    @app.get("/monitoring", include_in_schema=False)
+    def serve_frontend_executive(request: Request):
+        """Serves the Phase 5.2 - 5.7 Executive Intelligence Dashboard page (protected)."""
+        return _require_auth_page(request, "executive.html")
 
     @app.get("/relationship-explorer", include_in_schema=False)
     @app.get("/relationship-explorer.html", include_in_schema=False)

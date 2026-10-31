@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivSight · Directional Data Lineage &amp; Evidence Ledger</title>
+  <meta name="description" content="PrivSight Phase 5.1 — Directional Data Lineage DAG, SHA-256 Cryptographic Evidence Integrity Ledger, and Cross-System Data Egress Tracking.">
+
+  <!-- Early Theme Detection -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('privsight-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <!-- Google Fonts & PrivSight Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=21">
+
+  <!-- Cytoscape.js for interactive relationship graphs -->
+  <script src="/static/vendor/cytoscape.min.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- ====================================================================
+         COLLAPSIBLE SIDEBAR NAVIGATION (MULTI-PAGE)
+         ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <a href="/" class="brand-container">
+          <div class="brand-symbol">PS</div>
+          <div class="brand-info">
+            <div class="brand-name">
+              <span>PrivSight</span>
+              <span class="brand-tag">PS-019</span>
+            </div>
+            <span class="brand-desc">Personal-Data Discovery &amp; Evidence Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Core Workspace</div>
+        
+        <a href="/workspace" class="nav-item" id="navWorkspace">
+          <span class="nav-item-icon">📊</span>
+          <span class="nav-item-label">Overview Workspace</span>
+        </a>
+
+        <a href="/inventory" class="nav-item" id="navInventory">
+          <span class="nav-item-icon">🗄️</span>
+          <span class="nav-item-label">Personal-Data Inventory</span>
+          <span class="nav-badge" id="sidebarInvBadge">--</span>
+        </a>
+
+        <a href="/evidence-gaps" class="nav-item" id="navGaps">
+          <span class="nav-item-icon">⚠️</span>
+          <span class="nav-item-label">Missing Proof</span>
+          <span class="nav-badge" id="sidebarGapsBadge">--</span>
+        </a>
+
+        <a href="/lineage" class="nav-item active" id="navLineage">
+          <span class="nav-item-icon">🔀</span>
+          <span class="nav-item-label">Directional Lineage</span>
+          <span class="nav-badge" style="background: rgba(16, 185, 129, 0.2); color: #10B981; font-weight: 700;">5.1</span>
+        </a>
+
+        <a href="/tracera" class="nav-item" id="navTracera">
+          <span class="nav-item-icon">⚡</span>
+          <span class="nav-item-label">TRACERA</span>
+          <span class="nav-badge" style="background: var(--accent-gold); color: #000; font-weight: 700;">AI</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Enterprise Intelligence</div>
+
+        <a href="/executive" class="nav-item" id="navExecutive">
+          <span class="nav-item-icon">📈</span>
+          <span class="nav-item-label">Executive Dashboard</span>
+          <span class="nav-badge" style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; font-weight: 700;">5.6</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 0.85rem;">Governance &amp; Quality</div>
+
+        <a href="/evaluation" class="nav-item" id="navEvaluation">
+          <span class="nav-item-icon">🎯</span>
+          <span class="nav-item-label">Ground-Truth Evaluation</span>
+        </a>
+
+        <a href="/rules" class="nav-item" id="navRules">
+          <span class="nav-item-icon">⚙️</span>
+          <span class="nav-item-label">Detection Rules</span>
+        </a>
+
+        <a href="/reports" class="nav-item" id="navReports">
+          <span class="nav-item-icon">📥</span>
+          <span class="nav-item-label">Reports &amp; Downloads</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.65rem 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--accent-gold); margin-bottom: 0.2rem;">Evidence Integrity</div>
+          <div>SHA-256 Chained Ledger</div>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar">
+          <span id="collapseIcon">◀</span>
+          <span class="collapse-text">Collapse Menu</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ====================================================================
+         MAIN APPLICATION WRAPPER
+         ==================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Application Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Mobile Menu">☰</button>
+          <div class="breadcrumb-nav">
+            <span class="breadcrumb-root">PrivSight</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">Directional Data Lineage &amp; Evidence Ledger</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Connection Status -->
+          <div class="system-status-pill">
+            <span class="status-pulse-dot" id="systemStatusDot"></span>
+            <span id="systemStatusText">Ledger Online</span>
+          </div>
+
+          <!-- Primary Actions -->
+          <button class="btn btn-secondary-gold" id="btnVerifyLedger" title="Audit evidence hash chain from Genesis block to Tip">
+            <span>🛡️</span>
+            <span>Verify Ledger</span>
+          </button>
+
+          <button class="btn btn-primary-orange" id="btnScanEgress" title="Sync observable cross-system exports and mirrors">
+            <span>⚡</span>
+            <span>Scan Observable Egress</span>
+          </button>
+
+          <!-- Adaptive Theme Toggle -->
+          <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle Theme">
+            <span id="themeToggleIcon">☀️</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mandatory Technical Scope Disclaimer Banner -->
+      <aside class="disclaimer-banner">
+        <span class="disclaimer-badge">Phase 5.1 Verification</span>
+        <span>DIRECTIONAL LINEAGE &amp; INTEGRITY: Preserves strict upstream-to-downstream lifecycle flows (Ingestion ➔ Storage ➔ Processing ➔ Egress) grounded in technical evidence. Cryptographic proof is maintained via append-only SHA-256 chaining. Observable egress is recorded without fabricating unobserved network traffic.</span>
+      </aside>
+
+      <!-- Main Workspace Views -->
+      <main class="workspace-content" style="padding: 1.5rem 2rem;">
+        
+        <!-- Header Overview Card -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem 1.5rem;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.4rem;">🔀</span>
+                <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0;">Directional Lineage &amp; Evidence Ledger</h2>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700;">Grounded Provenance</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.45;" id="dagSummaryText">
+                Directional DAG representing data movement across datasets, SQLite relational schemas, and observable CSV export egress.
+              </p>
+            </div>
+
+            <!-- Stats Counter Pills -->
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <div class="stat-mini-pill">
+                <span class="label">Total Nodes</span>
+                <span class="val" id="badgeTotalNodes">--</span>
+              </div>
+              <div class="stat-mini-pill">
+                <span class="label">Directional Flows</span>
+                <span class="val" id="badgeTotalEdges">--</span>
+              </div>
+              <div class="stat-mini-pill">
+                <span class="label">Origin Sources</span>
+                <span class="val" id="badgeOrigins" style="color: #06B6D4;">--</span>
+              </div>
+              <div class="stat-mini-pill">
+                <span class="label">Egress Terminals</span>
+                <span class="val" id="badgeEgress" style="color: #F97316;">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Subtabs -->
+          <div class="lineage-subtabs-bar" style="margin-top: 1.25rem; display: flex; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <button class="lineage-subtab-btn active" data-target="pane-dag">
+              <span>🔀</span>
+              <span>Directional Lineage DAG</span>
+            </button>
+            <button class="lineage-subtab-btn" data-target="pane-ledger">
+              <span>⛓️</span>
+              <span>Evidence Integrity Ledger (SHA-256)</span>
+            </button>
+            <button class="lineage-subtab-btn" data-target="pane-egress">
+              <span>📤</span>
+              <span>Observable Data Egress Tracking</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             PANE 1: DIRECTIONAL LINEAGE DAG EXPLORER
+             ================================================================== -->
+        <section class="lineage-view-pane" id="pane-dag" style="display: block;">
+          
+          <!-- Filter Toolbar -->
+          <div class="lineage-filter-toolbar card" style="padding: 0.75rem 1.25rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
+            
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <!-- Entity Filter -->
+              <div class="filter-group">
+                <label for="filterEntity" style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-right: 0.35rem;">Entity:</label>
+                <select id="filterEntity" class="filter-select">
+                  <option value="">All Entities</option>
+                  <option value="Customer">Customers</option>
+                  <option value="Order">Orders</option>
+                  <option value="Payment">Payments</option>
+                  <option value="Employee">Employees</option>
+                  <option value="Department">Departments</option>
+                </select>
+              </div>
+
+              <!-- Stage Filter -->
+              <div class="filter-group">
+                <label for="filterStage" style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-right: 0.35rem;">Stage:</label>
+                <select id="filterStage" class="filter-select">
+                  <option value="">All Stages</option>
+                  <option value="Ingestion">Ingestion (CSVs/Uploads)</option>
+                  <option value="Storage">Storage (Databases)</option>
+                  <option value="Processing">Processing (Transactions)</option>
+                  <option value="Egress">Egress (Reports/Exports)</option>
+                </select>
+              </div>
+
+              <!-- Status Filter -->
+              <div class="filter-group">
+                <label for="filterStatus" style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-right: 0.35rem;">Status:</label>
+                <select id="filterStatus" class="filter-select">
+                  <option value="">All Statuses</option>
+                  <option value="Verified">Verified (Foreign Keys)</option>
+                  <option value="Inferred">Inferred (Identifier Overlap)</option>
+                </select>
+              </div>
+
+              <!-- Search input -->
+              <div class="search-input-wrap" style="position: relative;">
+                <input type="text" id="lineageSearchInput" placeholder="Filter by column or dataset..." class="form-control" style="font-size: 0.78rem; padding: 0.35rem 0.75rem 0.35rem 1.8rem; width: 220px; border-radius: var(--radius-sm);" />
+                <span style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; opacity: 0.6;">🔍</span>
+              </div>
+            </div>
+
+            <!-- Graph Actions -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button class="btn btn-sm btn-secondary" id="btnFitGraph" title="Fit to Screen">Fit</button>
+              <button class="btn btn-sm btn-secondary" id="btnResetGraph" title="Reset View &amp; Filters">Reset</button>
+            </div>
+          </div>
+
+          <!-- Lineage Canvas & Inspector Grid -->
+          <div class="lineage-main-grid" style="display: grid; grid-template-columns: 1fr 340px; gap: 1rem; height: 620px;">
+            
+            <!-- Cytoscape Canvas Card -->
+            <div class="card" style="padding: 0; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+              
+              <!-- Stage Progression Legend Bar -->
+              <div class="dag-stage-legend" style="padding: 0.6rem 1rem; background: var(--bg-elevated); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem;">
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 2px; background: #06B6D4; display: inline-block;"></span>
+                    <strong style="color: #06B6D4;">Ingestion</strong> (Raw Files)
+                  </span>
+                  <span>➔</span>
+                  <span style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+                    <strong style="color: #10B981;">Storage</strong> (Master DB)
+                  </span>
+                  <span>➔</span>
+                  <span style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #D4A72C; display: inline-block;"></span>
+                    <strong style="color: #D4A72C;">Processing</strong> (Orders/Payments)
+                  </span>
+                  <span>➔</span>
+                  <span style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span style="width: 10px; height: 10px; transform: rotate(45deg); background: #F97316; display: inline-block;"></span>
+                    <strong style="color: #F97316;">Egress</strong> (Exports/Reports)
+                  </span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="color: #10B981; font-weight: 600;">── Verified FK</span>
+                  <span style="color: #D4A72C; font-weight: 600;">- - Inferred Match</span>
+                </div>
+              </div>
+
+              <!-- Graph Container -->
+              <div id="cyLineageContainer" style="flex: 1; width: 100%; height: 100%; background: #070A0F;"></div>
+
+              <!-- Loading Overlay -->
+              <div id="dagLoadingOverlay" style="position: absolute; inset: 0; background: rgba(11, 15, 23, 0.75); display: none; align-items: center; justify-content: center; z-index: 10;">
+                <div style="text-align: center;">
+                  <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;" class="spin-icon">⚙️</span>
+                  <div style="font-size: 0.88rem; font-weight: 600; color: var(--accent-gold);">Constructing Directional Lineage DAG...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Inspector Sidebar -->
+            <div class="card" style="padding: 1rem 1.15rem; display: flex; flex-direction: column; overflow-y: auto;">
+              <div class="card-header" style="padding: 0 0 0.75rem 0; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 1.1rem;">🔎</span>
+                  <h3 class="card-title" style="font-size: 0.95rem;">Lineage Inspector</h3>
+                </div>
+              </div>
+              <div id="lineageInspectorContent" style="flex: 1;">
+                <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                  <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.6;">🔀</span>
+                  <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-secondary);">Select a Node or Edge</div>
+                  <p style="font-size: 0.76rem; margin-top: 0.25rem; line-height: 1.4;">
+                    Click any column node to highlight its upstream origins and downstream egress pathways, or click a connecting edge to inspect cryptographic evidence proof.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PANE 2: SHA-256 EVIDENCE INTEGRITY LEDGER
+             ================================================================== -->
+        <section class="lineage-view-pane" id="pane-ledger" style="display: none;">
+          
+          <div class="card" style="margin-bottom: 1rem; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.25rem 0;">
+                  Cryptographic Evidence Integrity Ledger
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                  Append-only structure where every evidence discovery is hashed with SHA-256 and bound to its predecessor hash.
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="system-status-pill" style="border-color: #10B981;">
+                  <span class="status-pulse-dot" style="background: #10B981;"></span>
+                  <span style="color: #10B981; font-weight: 700;">Genesis to Tip Validated</span>
+                </div>
+                <button class="btn btn-secondary-gold btn-sm" onclick="runLedgerVerification()">
+                  <span>🛡️</span>
+                  <span>Run Audit Verification</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 0;">
+            <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+              <table class="data-table" style="font-size: 0.78rem; width: 100%;">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">Seq</th>
+                    <th style="width: 140px;">Timestamp</th>
+                    <th>Source ➔ Target Link</th>
+                    <th>Evidence Type</th>
+                    <th>Status</th>
+                    <th>Current SHA-256 Hash</th>
+                  </tr>
+                </thead>
+                <tbody id="ledgerTableBody">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading Evidence Ledger...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PANE 3: OBSERVABLE DATA EGRESS TRACKING
+             ================================================================== -->
+        <section class="lineage-view-pane" id="pane-egress" style="display: none;">
+          
+          <div class="card" style="margin-bottom: 1rem; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.25rem 0;">
+                  Observable Cross-System Data Egress &amp; Replication
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                  Tracks observable export operations (CSV downloads, reporting tables, database mirrors) leaving tracked datasets.
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span class="badge" style="background: rgba(249, 115, 22, 0.15); color: #F97316; font-weight: 700;" id="badgeTotalEgress">-- Events</span>
+                <button class="btn btn-primary-orange btn-sm" onclick="triggerEgressScan()">
+                  <span>⚡</span>
+                  <span>Scan Observable Egress</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 0;">
+            <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+              <table class="data-table" style="font-size: 0.78rem; width: 100%;">
+                <thead>
+                  <tr>
+                    <th>Operation</th>
+                    <th>Source Dataset &amp; Column</th>
+                    <th>Destination Destination</th>
+                    <th>Entity &amp; Records</th>
+                    <th>Status</th>
+                    <th>Supporting Evidence Proof</th>
+                  </tr>
+                </thead>
+                <tbody id="egressTableBody">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading Egress Events...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       LEDGER AUDIT REPORT MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="ledgerAuditModal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px; width: 92%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.2rem;">🛡️</span>
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Evidence Ledger Audit Report</h3>
+        </div>
+        <button onclick="document.getElementById('ledgerAuditModal').style.display='none'" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.35rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="ledgerAuditModalBody" style="padding: 1.25rem 1.5rem;">
+        <!-- Filled dynamically -->
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="document.getElementById('ledgerAuditModal').style.display='none'">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Hub -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Lineage Application Script -->
+  <script src="/static/lineage.js?v=5.1"></script>
+</body>
+</html>
