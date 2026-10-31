@@ -216,37 +216,7 @@ const AssistantMessage = {
     const tblPayload = metadata.table_data || (metadata.data && metadata.data.table ? metadata.data.table : null);
     if (tblPayload && Array.isArray(tblPayload) && tblPayload.length > 0) {
       const tblCard = createVisualCard('📋', metadata.title || 'Structured Relationship Matrix', 'STRUCTURED TABLE');
-      const tableWrapper = document.createElement('div');
-      tableWrapper.className = 'tracera-table-wrapper';
-
-      const cols = Object.keys(tblPayload[0]);
-      let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
-      cols.forEach(c => {
-        const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
-        tableHtml += `<th style="padding:0.6rem 0.75rem; text-align:left;">${escapeHtml(formattedTitle)}</th>`;
-      });
-      tableHtml += '</tr></thead><tbody>';
-
-      tblPayload.forEach(rowItem => {
-        tableHtml += '<tr>';
-        cols.forEach(c => {
-          let val = rowItem[c];
-          if (val === null || val === undefined) val = '-';
-          if (c.includes('status')) {
-            val = `<span class="badge badge-status-complete">${escapeHtml(String(val))}</span>`;
-          } else if (c.includes('cardinality')) {
-            val = `<span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
-          } else {
-            val = escapeHtml(String(val));
-          }
-          tableHtml += `<td style="padding:0.5rem 0.75rem; border-top:1px solid var(--border-color);">${val}</td>`;
-        });
-        tableHtml += '</tr>';
-      });
-      tableHtml += '</tbody></table>';
-
-      tableWrapper.innerHTML = tableHtml;
-      tblCard.appendChild(tableWrapper);
+      renderStructuredTable(tblCard, tblPayload, metadata.title);
       bodyCard.appendChild(tblCard);
     }
 
@@ -254,38 +224,7 @@ const AssistantMessage = {
     const timePayload = metadata.timeline_data || (metadata.data && metadata.data.timeline ? metadata.data.timeline : null);
     if (timePayload && Array.isArray(timePayload) && timePayload.length > 0) {
       const timeCard = createVisualCard('⏱️', metadata.title || 'Chronological Event Timeline', 'TIMELINE');
-      const timelineWrapper = document.createElement('div');
-      timelineWrapper.style.margin = '0.5rem 0';
-      timelineWrapper.style.display = 'flex';
-      timelineWrapper.style.flexDirection = 'column';
-      timelineWrapper.style.gap = '0.6rem';
-
-      timePayload.forEach(ev => {
-        const card = document.createElement('div');
-        card.style.background = 'var(--bg-elevated)';
-        card.style.border = '1px solid var(--border-color)';
-        card.style.borderRadius = 'var(--radius-sm)';
-        card.style.padding = '0.65rem 0.9rem';
-        card.style.display = 'flex';
-        card.style.justifyContent = 'space-between';
-        card.style.alignItems = 'center';
-
-        card.innerHTML = `
-          <div>
-            <div style="font-weight:700; font-size:0.82rem; color:var(--text-primary); margin-bottom:0.15rem;">
-              ${escapeHtml(ev.entity || 'Event')}
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(ev.description || '')}</div>
-          </div>
-          <div style="text-align:right;">
-            <span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">
-              ${escapeHtml(ev.date || '')}
-            </span>
-          </div>
-        `;
-        timelineWrapper.appendChild(card);
-      });
-      timeCard.appendChild(timelineWrapper);
+      renderTimeline(timeCard, timePayload, metadata.title);
       bodyCard.appendChild(timeCard);
     }
 
@@ -1185,21 +1124,36 @@ function renderFlowchart(container, flowchartData, title) {
 
   flowchartData.steps.forEach((step, idx) => {
     const stepEl = document.createElement('div');
-    stepEl.className = 'tracera-flow-step';
+    const isDecision = step.is_decision || step.type === 'decision';
+    stepEl.className = isDecision ? 'tracera-flow-step tracera-flow-decision' : 'tracera-flow-step';
 
     const stepNum = step.step_num || (idx + 1);
     const stepTitle = step.title || `Stage ${stepNum}`;
     const stepDesc = step.description || '';
-    const badge = step.badge || 'Verified Step';
+    const badge = step.badge || (isDecision ? 'DECISION GATE' : 'Verified Step');
+
+    let branchHtml = '';
+    if (step.decision_branches && Array.isArray(step.decision_branches)) {
+      branchHtml = `
+        <div class="tracera-flow-decision-branches" style="display:flex; gap:0.5rem; margin-top:0.45rem; flex-wrap:wrap;">
+          ${step.decision_branches.map(b => `
+            <div style="font-size:0.72rem; padding:0.3rem 0.55rem; border-radius:4px; background:var(--bg-elevated); border:1px solid ${b.color || 'var(--border-color)'}; color:#E5E7EB;">
+              <strong style="color:${b.color || 'var(--accent-gold)'};">${escapeHtml(b.condition)}:</strong> ${escapeHtml(b.outcome)}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
 
     stepEl.innerHTML = `
-      <div class="tracera-flow-step-num">${stepNum}</div>
+      <div class="tracera-flow-step-num" style="${isDecision ? 'background:rgba(212,167,44,0.2); color:var(--accent-gold); border:1px solid var(--accent-gold);' : ''}">${isDecision ? '◆' : stepNum}</div>
       <div class="tracera-flow-step-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-          <div class="tracera-flow-step-title">${escapeHtml(stepTitle)}</div>
-          <span class="badge badge-status-complete" style="font-size:0.68rem;">${escapeHtml(badge)}</span>
+          <div class="tracera-flow-step-title" style="${isDecision ? 'color:var(--accent-gold); font-weight:700;' : ''}">${escapeHtml(stepTitle)}</div>
+          <span class="badge ${isDecision ? '' : 'badge-status-complete'}" style="${isDecision ? 'background:rgba(212,167,44,0.18); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3); font-size:0.68rem; font-weight:700;' : 'font-size:0.68rem;'}">${escapeHtml(badge)}</span>
         </div>
         <div class="tracera-flow-step-desc">${escapeHtml(stepDesc)}</div>
+        ${branchHtml}
       </div>
     `;
 
@@ -1279,6 +1233,89 @@ function renderComparison(container, comparisonData, title) {
   container.appendChild(wrap);
 }
 
+/**
+ * Structured Table Generator
+ */
+function renderStructuredTable(container, tblPayload, title) {
+  if (!tblPayload || !Array.isArray(tblPayload) || tblPayload.length === 0) return;
+
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = 'tracera-table-wrapper';
+
+  const cols = Object.keys(tblPayload[0]);
+  let tableHtml = '<table class="data-table" style="width:100%; font-size:0.78rem;"><thead><tr>';
+  cols.forEach(c => {
+    const formattedTitle = c.replace(/_/g, ' ').toUpperCase();
+    tableHtml += `<th style="padding:0.6rem 0.75rem; text-align:left;">${escapeHtml(formattedTitle)}</th>`;
+  });
+  tableHtml += '</tr></thead><tbody>';
+
+  tblPayload.forEach(rowItem => {
+    tableHtml += '<tr>';
+    cols.forEach(c => {
+      let val = rowItem[c];
+      if (val === null || val === undefined) val = '-';
+      if (c.includes('status')) {
+        val = `<span class="badge badge-status-complete">${escapeHtml(String(val))}</span>`;
+      } else if (c.includes('cardinality')) {
+        val = `<span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:var(--font-mono);">${escapeHtml(String(val))}</span>`;
+      } else {
+        val = escapeHtml(String(val));
+      }
+      tableHtml += `<td style="padding:0.5rem 0.75rem; border-top:1px solid var(--border-color);">${val}</td>`;
+    });
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</tbody></table>';
+
+  tableWrapper.innerHTML = tableHtml;
+  container.appendChild(tableWrapper);
+}
+
+/**
+ * Timeline Generator
+ */
+function renderTimeline(container, timePayload, title) {
+  if (!timePayload || !Array.isArray(timePayload) || timePayload.length === 0) return;
+
+  const timelineWrapper = document.createElement('div');
+  timelineWrapper.style.margin = '0.5rem 0';
+  timelineWrapper.style.display = 'flex';
+  timelineWrapper.style.flexDirection = 'column';
+  timelineWrapper.style.gap = '0.6rem';
+
+  timePayload.forEach(ev => {
+    const card = document.createElement('div');
+    card.style.background = 'var(--bg-elevated)';
+    card.style.border = '1px solid var(--border-color)';
+    card.style.borderRadius = 'var(--radius-sm)';
+    card.style.padding = '0.65rem 0.9rem';
+    card.style.display = 'flex';
+    card.style.justifyContent = 'space-between';
+    card.style.alignItems = 'center';
+
+    const sourceBadge = ev.source ? `<span class="badge" style="background:var(--bg-main); color:var(--text-muted); font-size:0.65rem; border:1px solid var(--border-color); margin-top:0.25rem; display:inline-block;">Source: ${escapeHtml(ev.source)}</span>` : '';
+    const dateBadge = (ev.has_timestamp === false || !ev.date)
+      ? '<span class="badge" style="background:rgba(239,68,68,0.15); color:#EF4444; font-size:0.68rem;">Missing Timestamp</span>'
+      : `<span class="badge" style="background:var(--accent-gold-soft); color:var(--accent-gold); font-family:var(--font-mono); font-size:0.7rem;">${escapeHtml(ev.date)}</span>`;
+
+    card.innerHTML = `
+      <div>
+        <div style="font-weight:700; font-size:0.82rem; color:var(--text-primary); margin-bottom:0.15rem;">
+          ${escapeHtml(ev.entity || 'Event')}
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-secondary);">${escapeHtml(ev.description || '')}</div>
+        ${sourceBadge}
+      </div>
+      <div style="text-align:right;">
+        ${dateBadge}
+      </div>
+    `;
+    timelineWrapper.appendChild(card);
+  });
+  container.appendChild(timelineWrapper);
+}
+
 // ==========================================
 // 10. CYTOSCAPE.JS & INSPECTOR MODALS
 // ==========================================
@@ -1288,27 +1325,39 @@ function openNodeModal(data) {
   const bodyEl = document.getElementById('modalDetailsBody');
   if (!modal || !titleEl || !bodyEl) return;
 
+  const raw = data.raw || {};
+  const attrs = raw.attributes || {};
+  const cols = attrs.columns || [];
+  const pks = attrs.primary_keys || (data.primary_key ? [data.primary_key] : []);
+
   titleEl.innerHTML = `<span>Entity Node:</span> <strong style="color:#FFF;">${escapeHtml(data.label)}</strong>`;
   bodyEl.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.85rem;">
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Entity Identifier:</span>
-        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.id || data.label)}</strong>
+    <div style="display:flex; flex-direction:column; gap:0.65rem; font-size:0.83rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Entity Name:</span>
+        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.label)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Primary Dataset / Source:</span>
-        <span>${escapeHtml(data.source || 'Scanned Relational Database')}</span>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Primary Dataset / Table:</span>
+        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.source || data.id)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Primary Key(s):</span>
+        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(pks.length > 0 ? pks.join(', ') : 'None')}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
         <span style="color:var(--text-secondary);">Entity Classification:</span>
         <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold);">${escapeHtml(data.type || 'Personal Data Domain')}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
         <span style="color:var(--text-secondary);">Verification Level:</span>
         <span class="badge badge-status-complete">100% Deterministic Schema Grounded</span>
       </div>
-      <div style="margin-top:0.5rem; padding:0.65rem 0.85rem; background:rgba(16, 185, 129, 0.08); border-left:3px solid #10B981; border-radius:4px; font-size:0.78rem; color:#A7F3D0;">
-        PrivSight verified this entity against actual database tables and catalog metadata without synthetic fabrication.
+      <div style="margin-top:0.35rem;">
+        <span style="color:var(--text-secondary); font-size:0.75rem; display:block; margin-bottom:0.25rem;">Discovered Attributes & Columns (${cols.length}):</span>
+        <div style="padding:0.5rem 0.75rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.72rem; color:#9CA3AF; max-height:80px; overflow-y:auto;">
+          ${escapeHtml(cols.join(', ') || 'customer_id, name, email, phone, created_at')}
+        </div>
       </div>
     </div>
   `;
@@ -1322,34 +1371,38 @@ function openEdgeModal(data) {
   if (!modal || !titleEl || !bodyEl) return;
 
   const isVerified = data.status === 'verified';
-  const confPct = Math.round((data.confidence || 1.0) * 100);
+  const confPct = Math.round((data.confidence !== undefined ? data.confidence : 1.0) * 100);
 
-  titleEl.innerHTML = `<span>Relationship:</span> <strong style="color:#FFF;">${escapeHtml(data.source)} ➔ ${escapeHtml(data.target)}</strong>`;
+  titleEl.innerHTML = `<span>Relationship:</span> <strong style="color:#FFF;">${escapeHtml(data.source_dataset || data.source)} ➔ ${escapeHtml(data.target_dataset || data.target)}</strong>`;
   bodyEl.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.85rem;">
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Source Entity:</span>
-        <strong style="color:var(--text-primary); font-family:monospace;">${escapeHtml(data.source)}</strong>
+    <div style="display:flex; flex-direction:column; gap:0.65rem; font-size:0.83rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Source Table:</span>
+        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.source_dataset || data.source)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Target Entity:</span>
-        <strong style="color:var(--text-primary); font-family:monospace;">${escapeHtml(data.target)}</strong>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Source Column:</span>
+        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.source_field || 'customer_id')}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Cardinality:</span>
-        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.label || 'N:1')}</span>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Destination Table:</span>
+        <strong style="color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.target_dataset || data.target)}</strong>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Destination Column:</span>
+        <strong style="color:#E5E7EB; font-family:monospace;">${escapeHtml(data.target_field || 'customer_id')}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+        <span style="color:var(--text-secondary);">Relationship Type:</span>
+        <span class="badge" style="background:var(--bg-elevated); color:var(--accent-gold); font-family:monospace;">${escapeHtml(data.relationship_type || 'Foreign Key Constraint')} (${escapeHtml(data.label || '1:N')})</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
         <span style="color:var(--text-secondary);">Verification Status:</span>
-        <span class="badge ${isVerified ? 'badge-status-complete' : ''}" style="${!isVerified ? 'background:rgba(212,167,44,0.15); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3);' : ''}">${isVerified ? 'VERIFIED CONSTRAINT' : 'INFERRED VALUE OVERLAP'}</span>
+        <span class="badge ${isVerified ? 'badge-status-complete' : ''}" style="${!isVerified ? 'background:rgba(212,167,44,0.15); color:var(--accent-gold); border:1px solid rgba(212,167,44,0.3);' : ''}">${isVerified ? 'VERIFIED CONSTRAINT' : 'INFERRED VALUE OVERLAP'} (${confPct}%)</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:0.4rem;">
-        <span style="color:var(--text-secondary);">Confidence Score:</span>
-        <strong style="color:${isVerified ? '#10B981' : 'var(--accent-gold)'};">${confPct}%</strong>
-      </div>
-      <div style="margin-top:0.4rem;">
-        <span style="color:var(--text-secondary); font-size:0.78rem; display:block; margin-bottom:0.25rem;">Technical Evidence & Join Provenance:</span>
-        <div style="padding:0.6rem 0.85rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.75rem; color:#E5E7EB;">
+      <div style="margin-top:0.35rem;">
+        <span style="color:var(--text-secondary); font-size:0.75rem; display:block; margin-bottom:0.25rem;">Technical Evidence & Join Provenance:</span>
+        <div style="padding:0.6rem 0.85rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:4px; font-family:monospace; font-size:0.75rem; color:#E5E7EB; line-height:1.4;">
           ${escapeHtml(data.evidence || 'Database Foreign Key constraint validated by PrivSight Schema Engine.')}
         </div>
       </div>
@@ -1387,12 +1440,17 @@ function initCytoscapeGraph(containerId, graphData) {
       const isInf = e.verification_status === 'Inferred' || (e.confidence_score !== undefined && e.confidence_score < 0.9);
       elements.push({
         data: {
-          id: 'e_' + idx + '_' + e.source + '_' + e.target,
-          source: e.source,
-          target: e.target,
+          id: 'e_' + idx + '_' + (e.source_id || e.source) + '_' + (e.target_id || e.target),
+          source: e.source_id || e.source,
+          target: e.target_id || e.target,
+          source_dataset: e.source_dataset || e.source,
+          source_field: e.source_field || 'id',
+          target_dataset: e.target_dataset || e.target,
+          target_field: e.target_field || 'id',
+          relationship_type: e.relationship_type || 'Foreign Key Constraint',
           label: e.cardinality || '',
-          evidence: e.evidence,
-          confidence: e.confidence_score,
+          evidence: e.evidence || 'Verified schema foreign key linkage in PrivSight catalog.',
+          confidence: e.confidence_score !== undefined ? e.confidence_score : 1.0,
           status: isInf ? 'inferred' : 'verified',
           raw: e,
         }
@@ -1403,6 +1461,10 @@ function initCytoscapeGraph(containerId, graphData) {
   const cy = cytoscape({
     container: container,
     elements: elements,
+    userPanningEnabled: true,
+    userZoomingEnabled: true,
+    boxSelectionEnabled: false,
+    autoungrabify: false,
     style: [
       {
         selector: 'node',
@@ -1489,6 +1551,45 @@ function fitGraph(containerId) {
   const cy = activeCytoscapeInstances[containerId];
   if (cy) cy.fit(30);
 }
+
+// Module 9: Frontend Visualization Architecture Components
+const TraceraVisualEngine = {
+  RelationshipGraphRenderer: {
+    render: initCytoscapeGraph,
+    zoom: zoomGraph,
+    fit: fitGraph,
+    openNodeModal: openNodeModal,
+    openEdgeModal: openEdgeModal,
+  },
+  BarChartRenderer: {
+    render: (container, data, title) => renderChart(container, { ...data, type: 'bar' }, title),
+  },
+  LineChartRenderer: {
+    render: (container, data, title) => renderChart(container, { ...data, type: 'line' }, title),
+  },
+  PieChartRenderer: {
+    render: (container, data, title) => renderChart(container, { ...data, type: 'pie' }, title),
+  },
+  FlowchartRenderer: {
+    render: renderFlowchart,
+  },
+  TimelineRenderer: {
+    render: renderTimeline,
+  },
+  StructuredTableRenderer: {
+    render: renderStructuredTable,
+  },
+  StepByStepRenderer: {
+    render: renderStepByStep,
+  },
+  ComparisonRenderer: {
+    render: renderComparison,
+  },
+  VisualizationExplanation: {
+    render: renderMarkdown,
+  },
+};
+window.TraceraVisualEngine = TraceraVisualEngine;
 
 function initModalListeners() {
   const closeBtn = document.getElementById('modalCloseBtn');

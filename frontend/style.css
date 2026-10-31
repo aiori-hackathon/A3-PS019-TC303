@@ -3854,6 +3854,19 @@ tbody tr:hover {
   line-height: 1.45;
 }
 
+.tracera-flow-step.tracera-flow-decision {
+  border-left: 3px solid var(--accent-gold);
+  background: rgba(212, 167, 44, 0.05);
+  box-shadow: 0 0 12px rgba(212, 167, 44, 0.08);
+}
+
+.tracera-flow-decision-branches {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  flex-wrap: wrap;
+}
+
 .tracera-flow-arrow {
   display: flex;
   justify-content: center;
