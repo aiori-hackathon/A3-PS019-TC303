@@ -35,4 +35,4 @@ defusedxml>=0.7.1          # Secure XML parser
 # ── Utilities ──────────────────────────────────
 python-multipart>=0.0.12   # form/file uploads in FastAPI
 aiofiles>=24.1.0           # async file I/O
-
+bcrypt
