@@ -441,15 +441,15 @@ const MessageComposer = {
     if (!this.inputEl || !this.sendBtnEl) return;
 
     this.sendBtnEl.disabled = true;
-    this.inputEl.style.height = '110px';
+    this.inputEl.style.height = '48px';
 
     const updateState = () => {
       const val = this.inputEl.value.trim();
       this.sendBtnEl.disabled = isSubmitting || val.length === 0;
 
-      // Auto-expand textarea between 110px and 260px
+      // Auto-expand textarea between 48px and 180px
       this.inputEl.style.height = 'auto';
-      const targetHeight = Math.max(110, Math.min(this.inputEl.scrollHeight, 260));
+      const targetHeight = Math.max(48, Math.min(this.inputEl.scrollHeight, 180));
       this.inputEl.style.height = targetHeight + 'px';
     };
 
@@ -480,7 +480,7 @@ const MessageComposer = {
   clear() {
     if (this.inputEl) {
       this.inputEl.value = '';
-      this.inputEl.style.height = '110px';
+      this.inputEl.style.height = '48px';
     }
     if (this.sendBtnEl) {
       this.sendBtnEl.disabled = true;

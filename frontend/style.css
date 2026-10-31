@@ -2608,11 +2608,11 @@ tbody tr:hover {
 .tracera-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 105px);
-  max-height: calc(100vh - var(--header-height) - 105px);
-  min-height: 520px;
+  height: calc(100vh - var(--header-height) - 80px);
+  max-height: calc(100vh - var(--header-height) - 80px);
+  min-height: 400px;
   margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
   overflow: hidden;
   position: relative;
 }
@@ -3442,7 +3442,7 @@ tbody tr:hover {
 .tracera-input-tray {
   flex-shrink: 0;
   width: 100%;
-  padding: 0.75rem 1.5rem 1rem;
+  padding: 0.5rem 1.25rem 0.35rem;
   background: var(--bg-card);
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -3458,10 +3458,10 @@ tbody tr:hover {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.2rem;
 }
 
-/* Large Rectangular Composer Card: Dark charcoal, thin subtle border, 12px rounded corners, 190px min-height */
+/* Compact Composer Card: Dark charcoal, thin subtle border, 12px rounded corners */
 .tracera-input-box {
   display: flex !important;
   flex-direction: column !important;
@@ -3469,11 +3469,11 @@ tbody tr:hover {
   background: #141720 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 12px !important;
-  padding: 1.15rem 1.25rem 0.95rem 1.25rem !important;
-  min-height: 190px !important;
+  padding: 0.75rem 1rem 0.6rem 1rem !important;
+  min-height: auto !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
-  gap: 0.75rem;
+  gap: 0.35rem;
   position: relative;
   box-sizing: border-box !important;
 }
@@ -3496,11 +3496,11 @@ tbody tr:hover {
   appearance: none;
   color: #F3F4F6 !important;
   font-family: var(--font-sans);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.55;
   resize: none !important;
-  min-height: 110px;
-  max-height: 280px;
+  min-height: 52px;
+  max-height: 130px;
   overflow-y: auto;
   padding: 0;
   margin: 0;
@@ -3519,7 +3519,7 @@ tbody tr:hover {
   align-items: center !important;
   width: 100% !important;
   margin-top: auto !important;
-  padding-top: 0.65rem !important;
+  padding-top: 0.4rem !important;
   border-top: 1px solid transparent;
 }
 
@@ -3599,15 +3599,15 @@ tbody tr:hover {
 
 @media (max-width: 900px) {
   .tracera-input-tray {
-    padding: 0.65rem 0.85rem 0.85rem;
+    padding: 0.5rem 0.75rem 0.65rem;
   }
   .tracera-input-box {
-    min-height: 140px !important;
-    padding: 0.85rem 1rem !important;
+    min-height: auto !important;
+    padding: 0.65rem 0.85rem 0.5rem !important;
   }
   .tracera-textarea {
-    min-height: 75px;
-    font-size: 0.9rem;
+    min-height: 40px;
+    font-size: 0.88rem;
   }
   .tracera-send-btn {
     width: 38px !important;
